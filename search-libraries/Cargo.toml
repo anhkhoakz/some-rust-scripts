@@ -1,0 +1,19 @@
+[package]
+name = "search-libraries"
+description = "An application to search for libraries"
+license = "GPL-2.0-only"
+version = "0.0.1"
+edition = "2021"
+authors = ["anhkhoakz"]
+repository = "https://github.com/anhkhoakz/search-libraries"
+readme = "README.md"
+
+[dependencies]
+reqwest = { version = "0.12.15", features = ["json"] }
+serde_json = "1.0.140"
+tokio = { version = "1.44.2", features = ["rt", "rt-multi-thread", "macros"] }
+serde = { version = "1.0.219", features = ["derive"] }
+
+[[bin]]
+name = "search"
+path = "src/main.rs"

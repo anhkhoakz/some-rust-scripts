@@ -1,0 +1,15 @@
+[package]
+  name = "count-characters"
+  description = "A simple Rust program to count characters in a string"
+  version = "0.1.0"
+  edition = "2021"
+  authors = ["Your Name <your.email@example.com>"]
+  license = "GPL-2.0"
+  license-file = "LICENSE"
+  readme = "README.md"
+  homepage = "https://github.com/anhkhoakz/count-characters"
+  repository = "https://github.com/anhkhoakz/count-characters"
+  keywords = ["rust", "count", "characters"]
+  categories = ["command-line-utilities"]
+
+[dependencies]
