@@ -32,7 +32,7 @@ Follow these instructions to build and use the scripts on your local machine.
 Clone the repository and build the project:
 
 ```sh
-git clone <repo-url>
+git clone https://github.com/anhkhoakz/some-rust-scripts.git
 cd some-rust-scripts
 cd <script-name>
 cargo build --release
