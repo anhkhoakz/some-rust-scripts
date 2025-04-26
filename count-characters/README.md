@@ -21,7 +21,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Prerequisites
 
-- [Rust](https://www.rust-lang.org/tools/install) (version 1.82.0 or later)
+- [Rust](https://www.rust-lang.org/tools/install) (version 1.86.0 or later)
 - Cargo (comes with Rust)
 
 ### Installing
@@ -29,7 +29,7 @@ These instructions will get you a copy of the project up and running on your loc
 Clone the repository:
 
 ```sh
-git clone <repo-url>
+git clone https://github.com/anhkhoakz/some-rust-scripts/
 cd count-characters
 ```
 

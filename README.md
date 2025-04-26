@@ -24,7 +24,7 @@ Follow these instructions to build and use the scripts on your local machine.
 
 ### Prerequisites
 
-- [Rust](https://www.rust-lang.org/tools/install) (version 1.82.0 or later)
+- [Rust](https://www.rust-lang.org/tools/install) (version 1.86.0 or later)
 - Cargo (comes with Rust)
 
 ### Building

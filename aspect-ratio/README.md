@@ -32,7 +32,7 @@ Follow these instructions to build and use the project on your local machine.
 Clone the repository and build the project:
 
 ```sh
-git clone <repo-url>
+git clone https://github.com/anhkhoakz/some-rust-scripts/
 cd aspect-ratio
 cargo build --release
 ```
@@ -42,7 +42,13 @@ cargo build --release
 To install the binary system-wide (requires sudo):
 
 ```sh
-make install
+sudo make install
+```
+
+You can also install it from crates.io:
+
+```sh
+cargo install aspect-ratio-cli
 ```
 
 ### Uninstalling
@@ -53,34 +59,40 @@ To remove the installed binary:
 make uninstall
 ```
 
+Or, if installed via Cargo:
+
+```sh
+cargo uninstall aspect-ratio-cli
+```
+
 ## Usage
 
 You can run the tool with:
 
 ```sh
-./target/release/aspect-ratio <width> <height>
-./target/release/aspect-ratio <width>x<height>
-./target/release/aspect-ratio <width>:<height>
+./target/release/aspect-ratio-cli <width> <height>
+./target/release/aspect-ratio-cli <width>x<height>
+./target/release/aspect-ratio-cli <width>:<height>
 ```
 
-Or, if installed:
+Or, if installed system-wide or via Cargo, you can run it directly:
 
 ```sh
-aspect-ratio <width> <height>
-aspect-ratio <width>x<height>
-aspect-ratio <width>:<height>
+aspect-ratio-cli <width> <height>
+aspect-ratio-cli <width>x<height>
+aspect-ratio-cli <width>:<height>
 ```
 
 ## Examples
 
 ```sh
-$ aspect-ratio 1920 1080
+$ aspect-ratio-cli 1920 1080
 16:9
 
-$ aspect-ratio 1280x720
+$ aspect-ratio-cli 1280x720
 16:9
 
-$ aspect-ratio 1024:768
+$ aspect-ratio-cli 1024:768
 4:3
 ```
 
