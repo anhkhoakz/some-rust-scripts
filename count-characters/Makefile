@@ -5,7 +5,7 @@ PREFIX=/usr/local/bin
 .PHONY: all build install uninstall
 
 all:
-  @echo "usage: make install"
+	@echo "usage: make install"
 	@echo "       make uninstall"
 	@echo "       make build"
 

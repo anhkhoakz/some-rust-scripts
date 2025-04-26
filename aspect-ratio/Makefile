@@ -10,7 +10,7 @@ all:
 	@echo "       make build"
 
 build:
-  cargo build --release
+	cargo build --release
 	@echo "Built $(BINARY) in target/release/"
 
 install: build
