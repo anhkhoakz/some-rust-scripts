@@ -14,6 +14,10 @@
   - [Examples](#examples)
   - [License](#license)
 
+![Crates.io Version](https://img.shields.io/crates/v/aspect-ratio-cli?style=for-the-badge)
+![Crates.io Total Downloads](https://img.shields.io/crates/d/aspect-ratio-cli?style=for-the-badge)
+![Crates.io Size (version)](https://img.shields.io/crates/size/aspect-ratio-cli/0.1.1?style=for-the-badge)
+
 ## About
 
 **Aspect Ratio** is a simple CLI tool written in Rust for quickly reducing width and height values to their simplest aspect ratio form. It supports multiple input formats and is designed for fast, efficient use in the terminal.

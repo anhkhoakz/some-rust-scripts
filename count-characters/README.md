@@ -11,6 +11,10 @@
   - [Usage](#usage)
   - [License](#license)
 
+![Crates.io Version](https://img.shields.io/crates/v/count-characters?style=for-the-badge)
+![Crates.io Total Downloads](https://img.shields.io/crates/d/count-characters?style=for-the-badge)
+![Crates.io Size (version)](https://img.shields.io/crates/size/count-characters/0.1.1?style=for-the-badge)
+
 ## About
 
 Count Characters is a simple CLI tool written in Rust that counts the number of characters in a given input, including support for reading from files. It trims leading and trailing blank lines and is designed for quick, efficient use in the terminal.
