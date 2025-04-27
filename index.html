@@ -4,11 +4,113 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+  <title>Some Rust Scripts</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css"
+    integrity="sha256-+8mmP8n8n3LRL9f8mAbhH6n3euT5ytFGsnADoRGbo9s=" crossorigin="anonymous">
+  <style>
+    .icon {
+      vertical-align: middle;
+      margin-left: 0.25em;
+      margin-right: 0.25em;
+      width: 1.25em;
+      height: 1.25em;
+      transition: filter 0.2s;
+    }
+
+    .icon:not(.root):hover {
+      filter: invert(0.5);
+    }
+
+    .icon.monochrome {
+      filter: grayscale(1);
+    }
+
+    .icon.monochrome:hover {
+      filter: grayscale(0);
+    }
+
+    a {
+      text-decoration: none;
+    }
+
+    .github-bg {
+      display: inline-block;
+    }
+
+    .rust-bg {
+      padding: 0.15em 0.3em;
+      display: inline-block;
+    }
+
+
+    .project-list li {
+      margin-bottom: 1em;
+    }
+  </style>
 </head>
 
 <body>
-  Place Holder
+  <main class="container">
+    <section>
+      <h1>
+        <span class="rust-bg">
+          <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons@v14/icons/rust.svg" class="icon root"
+            alt="Rust" />
+        </span>
+        Some Rust Scripts
+      </h1>
+    </section>
+
+    <section>
+      <h2>Projects</h2>
+      <p>
+        Root Project:
+        <span class="github-bg">
+          <a href="https://github.com/anhkhoakz/some-rust-scripts/">
+            <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons@v14/icons/github.svg" class="icon"
+              alt="GitHub" />
+          </a>
+        </span>
+        <a href="https://github.com/anhkhoakz/some-rust-scripts/">Some Rust Scripts</a>
+      </p>
+      <ul class="project-list">
+        <li>
+          <span class="project-title">Aspect Ratio CLI</span>
+          <span class="project-links">
+            <span class="github-bg">
+              <a href="https://github.com/anhkhoakz/some-rust-scripts/tree/main/aspect-ratio">
+                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons@v14/icons/github.svg" class="icon"
+                  alt="GitHub" />
+              </a>
+            </span>
+            <span class="rust-bg">
+              <a href="https://crates.io/crates/aspect-ratio-cli">
+                <img src="https://cdn.jsdelivr.net/gh/rust-lang/crates.io@main/public/assets/cargo.png"
+                  class="icon monochrome" alt="Crates.io" />
+              </a>
+            </span>
+          </span>
+        </li>
+        <li>
+          <span class="project-title">Count Characters</span>
+          <span class="project-links">
+            <span class="github-bg">
+              <a href="https://github.com/anhkhoakz/some-rust-scripts/tree/main/count-characters">
+                <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons@v14/icons/github.svg" class="icon"
+                  alt="GitHub" />
+              </a>
+            </span>
+            <span class="rust-bg">
+              <a href="https://crates.io/crates/count-characters">
+                <img src="https://cdn.jsdelivr.net/gh/rust-lang/crates.io@main/public/assets/cargo.png"
+                  class="icon monochrome" alt="Crates.io" />
+              </a>
+            </span>
+          </span>
+        </li>
+      </ul>
+    </section>
+  </main>
 </body>
 
 </html>
