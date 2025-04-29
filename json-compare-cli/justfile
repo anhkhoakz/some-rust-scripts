@@ -1,5 +1,7 @@
-BINARY := "count-characters"
-TARGET := "target/release/{{BINARY}}"
+set dotenv-load := false
+
+# Simple variables
+BINARY := "json-compare-cli"
 PREFIX := "/usr/local/bin"
 
 default:
@@ -22,7 +24,7 @@ build: test
     @echo "Built {{BINARY}} in target/release/"
 
 install: build
-    sudo cp {{TARGET}} {{PREFIX}}/
+    sudo cp target/release/{{BINARY}} {{PREFIX}}/
     @echo "Installed {{BINARY}} to {{PREFIX}}/"
 
 uninstall:
