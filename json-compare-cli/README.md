@@ -36,21 +36,18 @@ Clone the repository and build the project:
 
 ```sh
 git clone https://github.com/anhkhoakz/some-rust-scripts/
+cd some-rust-scripts
 cd json-compare-cli
 cargo build --release
 ```
 
 ### Installing
 
-To install the binary system-wide (requires sudo):
+To install the binary system-wide (optionally requires sudo):
 
 ```sh
-sudo make install
-```
-
-You can also install it from crates.io:
-
-```sh
+just install
+# or from crates.io:
 cargo install json-compare-cli
 ```
 
@@ -60,11 +57,7 @@ To remove the installed binary:
 
 ```sh
 make uninstall
-```
-
-Or, if installed via Cargo:
-
-```sh
+# or from crates.io:
 cargo uninstall json-compare-cli
 ```
 
@@ -77,7 +70,7 @@ cargo run --release -- file1.json file2.json
 
 ```
 
-Or, if installed system-wide or via Cargo, you can run it directly:
+Or, if installed system-wide or via crates.io, you can run it directly:
 
 ```sh
 json-compare-cli file1.json file2.json
