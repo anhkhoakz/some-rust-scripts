@@ -28,7 +28,7 @@ Follow these instructions to build and use the project on your local machine.
 
 ### Prerequisites
 
-- [Rust](https://www.rust-lang.org/tools/install) (version 1.82.0 or later)
+- [Rust](https://www.rust-lang.org/tools/install) (version 1.86.0 or later)
 - Cargo (comes with Rust)
 
 ### Building
@@ -37,16 +37,17 @@ Clone the repository and build the project:
 
 ```sh
 git clone https://github.com/anhkhoakz/some-rust-scripts/
+cd some-rust-scripts
 cd aspect-ratio
 cargo build --release
 ```
 
 ### Installing
 
-To install the binary system-wide (requires sudo):
+To install the binary system-wide (optional, requires sudo):
 
 ```sh
-sudo make install
+just install
 ```
 
 You can also install it from crates.io:
@@ -60,7 +61,7 @@ cargo install aspect-ratio-cli
 To remove the installed binary:
 
 ```sh
-make uninstall
+just uninstall
 ```
 
 Or, if installed via Cargo:

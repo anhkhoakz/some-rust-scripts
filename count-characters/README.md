@@ -34,25 +34,24 @@ Clone the repository:
 
 ```sh
 git clone https://github.com/anhkhoakz/some-rust-scripts/
+cd some-rust-scripts
 cd count-characters
-```
-
-Build the project:
-
-```sh
-make build
 ```
 
 Install the binary (optional, requires sudo):
 
 ```sh
-make install
+just install
+# or from crates.io:
+cargo install count-characters
 ```
 
 To uninstall:
 
 ```sh
-make uninstall
+just uninstall
+# or from crates.io:
+cargo uninstall count-characters
 ```
 
 ## Usage
