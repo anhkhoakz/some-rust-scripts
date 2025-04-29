@@ -1,6 +1,6 @@
 BINARY := "count-characters"
 TARGET := "target/release/{{BINARY}}"
-PREFIX := env_var("PREFIX", "/usr/local/bin")
+PREFIX := "/usr/local/bin"
 
 default:
     @echo "usage: just [command]"
