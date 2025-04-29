@@ -1,7 +1,7 @@
 [package]
   name = "count-characters"
   description = "A simple Rust program to count characters in a string"
-  version = "0.1.1"
+  version = "0.1.2"
   edition = "2021"
   authors = ["anhkhoakz"]
   license = "GPL-2.0"
