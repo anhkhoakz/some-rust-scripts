@@ -98,6 +98,32 @@ fn parse_dimensions(args: &[String]) -> Result<(u32, u32), ParseError> {
 fn main() {
     let args: Args = Args::parse();
 
+    if let Some(_shell) = std::env::args()
+        .nth(1)
+        .filter(|a: &String| a == "completions")
+    {
+        use clap_complete::{generate, Shell};
+        use std::io;
+
+        let mut cmd: clap::Command = Args::command();
+        let shell_name: String = std::env::args()
+            .nth(2)
+            .unwrap_or_else(|| "bash".to_string());
+        let shell: Shell = match shell_name.as_str() {
+            "bash" => Shell::Bash,
+            "zsh" => Shell::Zsh,
+            "fish" => Shell::Fish,
+            "powershell" => Shell::PowerShell,
+            "elvish" => Shell::Elvish,
+            _ => {
+                eprintln!("Unsupported shell: {}", shell_name);
+                std::process::exit(1);
+            }
+        };
+        generate(shell, &mut cmd, "aspect-ratio", &mut io::stdout());
+        return;
+    }
+
     match parse_dimensions(&args.dims) {
         Ok((width, height)) => {
             let (w, h) = aspect_ratio::get_aspect_ratio(width, height);

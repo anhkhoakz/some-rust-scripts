@@ -6,11 +6,11 @@ PREFIX := "/usr/local/bin"
 
 # Show usage information
 default:
-    @echo "usage: just [command]"
+    @just --list
 
 # List available commands
 help:
-    just --list
+    @just --list
 
 # Check code style with rustfmt and clippy
 lint:
