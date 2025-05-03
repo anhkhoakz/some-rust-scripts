@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="styles.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tauri App</title>
+  <script type="module" src="/main.js" defer></script>
+</head>
+
+<body>
+  <main class="container">
+    <h1>Close your eyes and count your breaths.</h1>
+
+    <div class="progress-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="timer" id="timer">20 seconds remaining</div>
+
+    <div class="postpone" onclick="alert('Break postponed')">
+      <span>Postpone this break</span>
+      <span class="clock-icon">🕒</span>
+    </div>
+
+    <script>
+      const timerEl = document.getElementById("timer");
+      let seconds = 20;
+
+      const interval = setInterval(() => {
+        seconds--;
+        if (seconds > 0) {
+          timerEl.textContent = `${seconds} seconds remaining`;
+        } else {
+          timerEl.textContent = `Break complete`;
+          clearInterval(interval);
+        }
+      }, 1000);
+    </script>
+  </main>
+</body>
+
+</html>
