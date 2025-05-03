@@ -10,10 +10,24 @@
   repository = "https://github.com/anhkhoakz/some-rust-scripts/tree/main/aspect-ratio"
   keywords = ["aspect-ratio", "rust", "cli"]
   categories = ["command-line-utilities"]
+  exclude = [
+    "test/*",
+    "target/*",
+    ".gitignore",
+    "justfile",
+    "README.md",
+    "LICENSE",
+    "*.md",
+    "*.toml",
+    "*.lock",
+  ]
 
 [dependencies]
-  clap = { version = "4.5.37", features = ["derive"] }
   clap_complete = "4.5.48"
+
+[dependencies.clap]
+  version = "4.5.37"
+  features = ["derive"]
 
 [profile.release]
   opt-level = "z"

@@ -70,7 +70,7 @@ fn parse_dimensions(args: &[String]) -> Result<(u32, u32), ParseError> {
     match args {
         [input] => {
             let input: &str = input.as_str();
-            let (w, h) = if let Some((w, h)) = input.split_once(['x', ':']) {
+            let (w, h) = if let Some((w, h)) = input.split_once(['x', ':', '×']) {
                 (w.trim(), h.trim())
             } else {
                 return Err(ParseError::InvalidFormat);
