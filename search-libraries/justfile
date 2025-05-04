@@ -1,38 +1,49 @@
-BINARY := "count-characters"
-TARGET := "target/release/{{BINARY}}"
+set dotenv-load := false
+
+# Simple variables
+BINARY := "search-libraries"
 PREFIX := "/usr/local/bin"
 
+# Show usage information
 default:
     @echo "usage: just [command]"
 
+# List available commands
 help:
     just --list
 
+# Check code style with rustfmt and clippy
 lint:
     @echo "Checking code style..."
     cargo fmt -- --check
     cargo clippy -- -D warnings
 
+# Run linter and tests
 test: lint
     @echo "Running tests..."
     cargo test
 
+# Build release binary after tests
 build: test
     cargo build --release
     @echo "Built {{BINARY}} in target/release/"
 
+# Install binary to /usr/local/bin
 install: build
-    sudo cp {{TARGET}} {{PREFIX}}/
+    sudo cp target/release/{{BINARY}} {{PREFIX}}/
     @echo "Installed {{BINARY}} to {{PREFIX}}/"
 
+# Remove installed binary
 uninstall:
     sudo rm -f {{PREFIX}}/{{BINARY}}
     @echo "Uninstalled {{BINARY}} from {{PREFIX}}/"
 
+# Remove build artifacts
 clean:
     cargo clean
     @echo "Cleaned build artifacts."
 
+# Publish crate to crates.io
 publish: test
     @echo "Publishing to crates.io..."
     cargo publish

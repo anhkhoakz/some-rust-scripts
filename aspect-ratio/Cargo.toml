@@ -1,6 +1,6 @@
 [package]
   name = "aspect-ratio-cli"
-  version = "0.1.2"
+  version = "0.1.3"
   edition = "2021"
   authors = ["anhkhoakz"]
   description = "A simple Rust library to calculate aspect ratio"
@@ -22,4 +22,15 @@
   ]
 
 [dependencies]
-  clap = { version = "4.5.37", features = ["derive"] }
+  clap_complete = "4.5.48"
+
+[dependencies.clap]
+  version = "4.5.37"
+  features = ["derive"]
+
+[profile.release]
+  opt-level = "z"
+  lto = true
+  codegen-units = 1
+  panic = "abort"
+  strip = true

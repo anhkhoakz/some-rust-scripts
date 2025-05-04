@@ -1,4 +1,3 @@
-use arboard::Clipboard;
 use clap::Parser;
 use colored::*;
 use serde_json::Value;
@@ -8,23 +7,17 @@ use std::{fs, path::PathBuf, process};
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 struct Args {
-    /// The first JSON file to compare (or leave empty to use clipboard)
+    /// The first JSON file to compare
     #[arg(value_name = "FILE1")]
-    file1: Option<PathBuf>,
-    /// The second JSON file to compare (or leave empty to use clipboard)
+    file1: PathBuf,
+    /// The second JSON file to compare
     #[arg(value_name = "FILE2")]
-    file2: Option<PathBuf>,
+    file2: PathBuf,
 }
 
-fn read_input(file: &Option<PathBuf>) -> Result<String, String> {
-    if let Some(path) = file {
-        fs::read_to_string(path)
-            .map_err(|e: std::io::Error| format!("Failed to read file {}: {}", path.display(), e))
-    } else {
-        Clipboard::new()
-            .and_then(|mut c: Clipboard| c.get_text())
-            .map_err(|e: arboard::Error| format!("Failed to read clipboard: {}", e))
-    }
+fn read_input(file: &PathBuf) -> Result<String, String> {
+    fs::read_to_string(file)
+        .map_err(|e: std::io::Error| format!("Failed to read file {}: {}", file.display(), e))
 }
 
 fn parse_json(input: &str) -> String {
@@ -64,11 +57,7 @@ fn main() {
     let text1: String = match read_input(&args.file1) {
         Ok(content) => content,
         Err(e) => {
-            if args.file1.is_none() {
-                eprintln!("No input provided. Please specify files or copy JSON to the clipboard.");
-            } else {
-                eprintln!("{}", e);
-            }
+            eprintln!("{}", e);
             process::exit(1);
         }
     };
@@ -76,13 +65,7 @@ fn main() {
     let text2: String = match read_input(&args.file2) {
         Ok(content) => content,
         Err(e) => {
-            if args.file2.is_none() {
-                eprintln!(
-                    "No input provided for second argument. Please specify a file or copy JSON to the clipboard."
-                );
-            } else {
-                eprintln!("{}", e);
-            }
+            eprintln!("{}", e);
             process::exit(1);
         }
     };
