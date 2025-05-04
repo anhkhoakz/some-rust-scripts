@@ -16,7 +16,7 @@
 
 ![Crates.io Version](https://img.shields.io/crates/v/aspect-ratio-cli?style=for-the-badge)
 ![Crates.io Total Downloads](https://img.shields.io/crates/d/aspect-ratio-cli?style=for-the-badge)
-![Crates.io Size (version)](https://img.shields.io/crates/size/aspect-ratio-cli/0.1.1?style=for-the-badge)
+![Crates.io Size (version)](https://img.shields.io/crates/size/aspect-ratio-cli/0.1.3?style=for-the-badge)
 ![Crates.io License](https://img.shields.io/crates/l/aspect-ratio-cli?style=for-the-badge&logo=gnu&color=A42E2B)
 
 ## About

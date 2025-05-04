@@ -15,7 +15,7 @@
 
 ![Crates.io Version](https://img.shields.io/crates/v/json-compare-cli?style=for-the-badge)
 ![Crates.io Total Downloads](https://img.shields.io/crates/d/json-compare-cli?style=for-the-badge)
-![Crates.io Size (version)](https://img.shields.io/crates/size/json-compare-cli/0.1.0?style=for-the-badge)
+![Crates.io Size (version)](https://img.shields.io/crates/size/json-compare-cli/0.1.2?style=for-the-badge)
 
 ## About
 

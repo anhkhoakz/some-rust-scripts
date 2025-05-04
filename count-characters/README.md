@@ -13,7 +13,7 @@
 
 ![Crates.io Version](https://img.shields.io/crates/v/count-characters?style=for-the-badge)
 ![Crates.io Total Downloads](https://img.shields.io/crates/d/count-characters?style=for-the-badge)
-![Crates.io Size (version)](https://img.shields.io/crates/size/count-characters/0.1.1?style=for-the-badge)
+![Crates.io Size (version)](https://img.shields.io/crates/size/count-characters/0.1.3?style=for-the-badge)
 
 ## About
 
