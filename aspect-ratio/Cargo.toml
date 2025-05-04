@@ -10,6 +10,16 @@
   repository = "https://github.com/anhkhoakz/some-rust-scripts/tree/main/aspect-ratio"
   keywords = ["aspect-ratio", "rust", "cli"]
   categories = ["command-line-utilities"]
+  exclude = [
+    "target",
+    "Cargo.lock",
+    "README.md",
+    ".gitignore",
+    ".vscode",
+    ".idea",
+    "examples",
+    "tests",
+  ]
 
 [dependencies]
   clap = { version = "4.5.37", features = ["derive"] }
