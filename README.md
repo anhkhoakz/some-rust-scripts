@@ -43,7 +43,7 @@ cargo build --release
 To install the binaries system-wide (requires sudo):
 
 ```sh
-make install
+just install
 ```
 
 ### Uninstalling
@@ -51,7 +51,7 @@ make install
 To remove the installed binaries:
 
 ```sh
-make uninstall
+just uninstall
 ```
 
 ## Usage
