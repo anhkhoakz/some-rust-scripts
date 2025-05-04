@@ -204,9 +204,9 @@ pub async fn get_entries(
             .unwrap_or(0) as u8;
         println!(
             "{} | {} | {} | {} | {}",
-            id.to_string().green(),
-            title.unwrap().yellow(),
-            url.blue(),
+            id.to_string().blue(),
+            title.unwrap().green(),
+            url.yellow(),
             archive,
             starred
         );
