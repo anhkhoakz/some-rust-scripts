@@ -1,4 +1,4 @@
-BINARY := "count-characters"
+BINARY := "aspect-ratio-cli"
 TARGET := "target/release/{{BINARY}}"
 PREFIX := "/usr/local/bin"
 
