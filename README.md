@@ -33,8 +33,7 @@ Clone the repository and build the project:
 
 ```sh
 git clone https://github.com/anhkhoakz/some-rust-scripts.git
-cd some-rust-scripts
-cd <script-name>
+cd some-rust-scripts/<script-name>
 cargo build --release
 ```
 

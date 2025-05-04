@@ -1,33 +1,33 @@
 [package]
-  name = "count-characters"
-  description = "A simple Rust program to count characters in a string"
-  version = "0.1.3"
-  edition = "2021"
-  authors = ["anhkhoakz"]
-  license = "GPL-2.0"
-  readme = "README.md"
-  homepage = "https://github.com/anhkhoakz/some-rust-scripts/tree/main/count-characters"
-  repository = "https://github.com/anhkhoakz/some-rust-scripts/tree/main/count-characters"
-  keywords = ["rust", "count", "characters", "cli"]
-  categories = ["command-line-utilities"]
-  exclude = [
-    "test/*",
-    "target/*",
-    ".gitignore",
-    "justfile",
-    "README.md",
-    "LICENSE",
-    "*.md",
-    "*.toml",
-    "*.lock",
-  ]
+name = "count-characters"
+description = "A simple Rust program to count characters in a string"
+version = "0.1.4"
+edition = "2021"
+authors = ["anhkhoakz"]
+license = "GPL-2.0"
+readme = "README.md"
+homepage = "https://github.com/anhkhoakz/some-rust-scripts/tree/main/count-characters"
+repository = "https://github.com/anhkhoakz/some-rust-scripts/tree/main/count-characters"
+keywords = ["rust", "count", "characters", "cli"]
+categories = ["command-line-utilities"]
+exclude = [
+  "test/*",
+  "target/*",
+  ".gitignore",
+  "justfile",
+  "README.md",
+  "LICENSE",
+  "*.md",
+  "*.toml",
+  "*.lock",
+]
 
 [dependencies]
-  clap = { version = "4.5.37", features = ["derive"] }
+clap = { version = "4.5.37", features = ["derive"] }
 
 [profile.release]
-  opt-level = "z"
-  lto = true
-  codegen-units = 1
-  panic = "abort"
-  strip = true
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

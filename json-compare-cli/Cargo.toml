@@ -1,6 +1,6 @@
 [package]
   name = "json-compare-cli"
-  version = "0.1.2"
+  version = "0.1.3"
   edition = "2024"
   authors = ["anhkhoakz"]
   description = "A command-line tool to compare JSON files and print the differences in a human-readable format."

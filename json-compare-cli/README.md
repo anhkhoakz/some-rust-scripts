@@ -15,7 +15,8 @@
 
 ![Crates.io Version](https://img.shields.io/crates/v/json-compare-cli?style=for-the-badge)
 ![Crates.io Total Downloads](https://img.shields.io/crates/d/json-compare-cli?style=for-the-badge)
-![Crates.io Size (version)](https://img.shields.io/crates/size/json-compare-cli/0.1.2?style=for-the-badge)
+![Crates.io Size](https://img.shields.io/crates/size/json-compare-cli?style=for-the-badge)
+![Crates.io License](https://img.shields.io/crates/l/json-compare-cli?style=for-the-badge&logo=gnu&color=A42E2B)
 
 ## About
 
