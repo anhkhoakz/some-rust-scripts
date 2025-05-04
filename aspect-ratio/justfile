@@ -1,49 +1,57 @@
-set dotenv-load := false
-
-# Simple variables
-BINARY := "aspect-ratio-cli"
+BINARY := "count-characters"
+TARGET := "target/release/{{BINARY}}"
 PREFIX := "/usr/local/bin"
 
-# Show usage information
+# Lists all available just commands
 default:
     @just --list
 
-# List available commands
+# Prints usage information
 help:
-    @just --list
+    @echo "usage: just [command]"
 
-# Check code style with rustfmt and clippy
+# Checks code formatting and runs Clippy linter
 lint:
     @echo "Checking code style..."
     cargo fmt -- --check
     cargo clippy -- -D warnings
 
-# Run linter and tests
+# Runs lint and executes tests
 test: lint
     @echo "Running tests..."
     cargo test
 
-# Build release binary after tests
+# Runs tests and builds the project in release mode
 build: test
     cargo build --release
     @echo "Built {{BINARY}} in target/release/"
 
-# Install binary to /usr/local/bin
-install: build
-    sudo cp target/release/{{BINARY}} {{PREFIX}}/
-    @echo "Installed {{BINARY}} to {{PREFIX}}/"
+# Installs the release binary to the system prefix (platform-specific)
+install:
+    if [ "$(uname)" = "Darwin" ] || [ "$(uname)" = "Linux" ]; then \
+        sudo cp {{TARGET}} {{PREFIX}}/ && \
+        echo "Installed {{BINARY}} to {{PREFIX}}/"; \
+    else \
+        copy {{TARGET}} %USERPROFILE%\\.cargo\\bin\\ && \
+        echo "Installed {{BINARY}} to %USERPROFILE%\\.cargo\\bin\\"; \
+    fi
 
-# Remove installed binary
+# Removes the installed binary from the system prefix (platform-specific)
 uninstall:
-    sudo rm -f {{PREFIX}}/{{BINARY}}
-    @echo "Uninstalled {{BINARY}} from {{PREFIX}}/"
+    if [ "$(uname)" = "Darwin" ] || [ "$(uname)" = "Linux" ]; then \
+        sudo rm -f {{PREFIX}}/{{BINARY}} && \
+        echo "Uninstalled {{BINARY}} from {{PREFIX}}/"; \
+    else \
+        del %USERPROFILE%\\.cargo\\bin\\{{BINARY}}.exe && \
+        echo "Uninstalled {{BINARY}} from %USERPROFILE%\\.cargo\\bin\\"; \
+    fi
 
-# Remove build artifacts
+# Removes build artifacts
 clean:
     cargo clean
     @echo "Cleaned build artifacts."
 
-# Publish crate to crates.io
+# Runs tests and publishes the crate to crates.io
 publish: test
     @echo "Publishing to crates.io..."
     cargo publish

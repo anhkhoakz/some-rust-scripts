@@ -11,15 +11,14 @@
   keywords = ["aspect-ratio", "rust", "cli"]
   categories = ["command-line-utilities"]
   exclude = [
-    "test/*",
-    "target/*",
-    ".gitignore",
-    "justfile",
+    "target",
+    "Cargo.lock",
     "README.md",
-    "LICENSE",
-    "*.md",
-    "*.toml",
-    "*.lock",
+    ".gitignore",
+    ".vscode",
+    ".idea",
+    "examples",
+    "tests",
   ]
 
 [dependencies]
