@@ -1,8 +1,7 @@
 use clap::Parser;
-use colored::*;
 use serde_json::Value;
 use similar::{Algorithm, ChangeTag, TextDiff};
-use std::{fs, path::PathBuf, process};
+use std::{error::Error, fs, path::PathBuf};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
@@ -15,15 +14,21 @@ struct Args {
     file2: PathBuf,
 }
 
-fn read_input(file: &PathBuf) -> Result<String, String> {
-    fs::read_to_string(file)
-        .map_err(|e: std::io::Error| format!("Failed to read file {}: {}", file.display(), e))
+fn read_input(file: &PathBuf) -> Result<String, Box<dyn Error>> {
+    if !file.exists() {
+        return Err(format!("File not found: {}", file.display()).into());
+    }
+    if !file.is_file() {
+        return Err(format!("Not a file: {}", file.display()).into());
+    }
+    let content: String = fs::read_to_string(file)?;
+    Ok(content)
 }
 
-fn parse_json(input: &str) -> String {
-    serde_json::from_str::<Value>(input)
-        .map(|v: Value| serde_json::to_string_pretty(&v).unwrap_or_else(|_| input.to_string()))
-        .unwrap_or_else(|_| input.to_string())
+fn parse_json(input: &str) -> Result<String, Box<dyn Error>> {
+    let v: Value = serde_json::from_str(input)?;
+    let pretty: String = serde_json::to_string_pretty(&v)?;
+    Ok(pretty)
 }
 
 fn print_diff(original: &str, changed: &str) {
@@ -39,39 +44,27 @@ fn print_diff(original: &str, changed: &str) {
                     ChangeTag::Insert => "+",
                     ChangeTag::Equal => " ",
                 };
-                let colored_line: String = match change.tag() {
-                    ChangeTag::Delete => format!("{}{}", sign, change).red().to_string(),
-                    ChangeTag::Insert => format!("{}{}", sign, change).green().to_string(),
-                    ChangeTag::Equal => format!("{}{}", sign, change),
-                };
-                print!("{}", colored_line);
+                print!("{}{}", sign, change);
             }
         }
         println!();
     }
 }
 
-fn main() {
-    let args: Args = Args::parse();
-
-    let text1: String = match read_input(&args.file1) {
-        Ok(content) => content,
-        Err(e) => {
-            eprintln!("{}", e);
-            process::exit(1);
-        }
-    };
-
-    let text2: String = match read_input(&args.file2) {
-        Ok(content) => content,
-        Err(e) => {
-            eprintln!("{}", e);
-            process::exit(1);
-        }
-    };
-
-    let formatted1: String = parse_json(&text1);
-    let formatted2: String = parse_json(&text2);
-
+fn handle_compare(args: Args) -> Result<(), Box<dyn Error>> {
+    let text1: String = read_input(&args.file1)?;
+    let text2: String = read_input(&args.file2)?;
+    let formatted1: String = parse_json(&text1).unwrap_or(text1);
+    let formatted2: String = parse_json(&text2).unwrap_or(text2);
     print_diff(&formatted1, &formatted2);
+    Ok(())
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let args = Args::parse();
+    if let Err(e) = handle_compare(args) {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
+    }
+    Ok(())
 }

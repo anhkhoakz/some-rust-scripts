@@ -1,16 +1,13 @@
-set dotenv-load := false
-
-# Simple variables
 BINARY := "aspect-ratio"
 PREFIX := "/usr/local/bin"
 
 # Show usage information
-default:
-    @echo "usage: just [command]"
+default: help
+    @just --list
 
 # List available commands
 help:
-    just --list
+    @echo "Usage: just [recipe]"
 
 # Check code style with rustfmt and clippy
 lint:
@@ -26,17 +23,17 @@ test: lint
 # Build release binary after tests
 build: test
     cargo build --release
-    @echo "Built {{BINARY}} in target/release/"
+    @echo "Built {{ BINARY }} in target/release/"
 
 # Install binary to /usr/local/bin
 install: build
-    sudo cp target/release/{{BINARY}} {{PREFIX}}/
-    @echo "Installed {{BINARY}} to {{PREFIX}}/"
+    sudo cp target/release/{{ BINARY }} {{ PREFIX }}/
+    @echo "Installed {{ BINARY }} to {{ PREFIX }}/"
 
 # Remove installed binary
 uninstall:
-    sudo rm -f {{PREFIX}}/{{BINARY}}
-    @echo "Uninstalled {{BINARY}} from {{PREFIX}}/"
+    sudo rm -f {{ PREFIX }}/{{ BINARY }}
+    @echo "Uninstalled {{ BINARY }} from {{ PREFIX }}/"
 
 # Remove build artifacts
 clean:

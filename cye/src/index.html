@@ -2,43 +2,100 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
-  <link rel="stylesheet" href="styles.css" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tauri App</title>
-  <script type="module" src="/main.js" defer></script>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Eye Rest Reminder</title>
+    <script type="module" src="/main.js" defer></script>
 </head>
 
 <body>
-  <main class="container">
-    <h1>Close your eyes and count your breaths.</h1>
+    <main class="container">
+        <h1>Eye Rest Reminder</h1>
 
-    <div class="progress-container">
-      <div class="progress-bar" id="progressBar"></div>
-    </div>
+        <div class="settings">
+            <label for="timerMinutes">Break Interval (minutes):</label>
+            <input type="number" id="timerMinutes" min="1" max="120" value="30">
+            <button id="startTimer">Start Timer</button>
+        </div>
 
-    <div class="timer" id="timer">20 seconds remaining</div>
+        <div class="timer-container" style="display: none;">
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
 
-    <div class="postpone" onclick="alert('Break postponed')">
-      <span>Postpone this break</span>
-      <span class="clock-icon">🕒</span>
-    </div>
+            <div class="timer" id="timer">30 minutes remaining</div>
 
-    <script>
-      const timerEl = document.getElementById("timer");
-      let seconds = 20;
+            <div class="postpone" id="postponeBtn">
+                <span>Postpone this break</span>
+                <span class="clock-icon">🕒</span>
+            </div>
+        </div>
 
-      const interval = setInterval(() => {
-        seconds--;
-        if (seconds > 0) {
-          timerEl.textContent = `${seconds} seconds remaining`;
-        } else {
-          timerEl.textContent = `Break complete`;
-          clearInterval(interval);
-        }
-      }, 1000);
-    </script>
-  </main>
+        <script>
+            const { invoke } = window.__TAURI__.tauri;
+            const { listen } = window.__TAURI__.event;
+
+            const timerEl = document.getElementById("timer");
+            const progressBar = document.getElementById("progressBar");
+            const timerContainer = document.querySelector(".timer-container");
+            const startTimerBtn = document.getElementById("startTimer");
+            const postponeBtn = document.getElementById("postponeBtn");
+            const timerMinutesInput = document.getElementById("timerMinutes");
+
+            let timerInterval;
+            let totalSeconds = 0;
+            let remainingSeconds = 0;
+
+            function updateTimerDisplay() {
+                const minutes = Math.floor(remainingSeconds / 60);
+                const seconds = remainingSeconds % 60;
+                timerEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')} remaining`;
+
+                const progress = (remainingSeconds / totalSeconds) * 100;
+                progressBar.style.width = `${progress}%`;
+            }
+
+            function startTimer() {
+                const minutes = parseInt(timerMinutesInput.value);
+                if (isNaN(minutes) || minutes < 1) return;
+
+                totalSeconds = minutes * 60;
+                remainingSeconds = totalSeconds;
+
+                timerContainer.style.display = 'block';
+                startTimerBtn.disabled = true;
+
+                updateTimerDisplay();
+
+                invoke('start_timer', { minutes: minutes });
+
+                timerInterval = setInterval(() => {
+                    remainingSeconds--;
+                    if (remainingSeconds > 0) {
+                        updateTimerDisplay();
+                    } else {
+                        clearInterval(timerInterval);
+                        invoke('show_reminder');
+                        timerEl.textContent = 'Time for a break!';
+                        startTimerBtn.disabled = false;
+                    }
+                }, 1000);
+            }
+
+            startTimerBtn.addEventListener('click', startTimer);
+
+            postponeBtn.addEventListener('click', () => {
+                clearInterval(timerInterval);
+                startTimer();
+            });
+
+            listen('timer-complete', () => {
+                clearInterval(timerInterval);
+                invoke('show_reminder');
+            });
+        </script>
+    </main>
 </body>
 
 </html>

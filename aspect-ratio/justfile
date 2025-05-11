@@ -1,5 +1,5 @@
 BINARY := "aspect-ratio-cli"
-TARGET := "target/release/{{BINARY}}"
+TARGET := "target/release/" + BINARY
 PREFIX := "/usr/local/bin"
 
 # Lists all available just commands

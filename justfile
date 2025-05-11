@@ -2,7 +2,7 @@ FOLDERS := "aspect-ratio count-characters json-compare-cli"
 
 # Lists all available just commands
 default:
-    @just --list
+    just --list
 
 # Prints usage information
 help:
