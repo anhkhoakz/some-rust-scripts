@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::utils;
 use colored::Colorize;
 use reqwest::{Client, Error, Response};
 use serde_json::value;
@@ -76,7 +77,6 @@ pub async fn get_entries(
     detail: Option<&str>,
     domain_name: Option<&str>,
 ) {
-    // Set default values if None
     let archive: u8 = archive.unwrap_or(0);
     let starred: u8 = starred.unwrap_or(0);
     let sort: &str = sort.unwrap_or("created");
@@ -89,30 +89,27 @@ pub async fn get_entries(
     let detail: &str = detail.unwrap_or("full");
     let domain_name: &str = domain_name.unwrap_or("");
 
-    if archive != 0 && archive != 1 {
+    if !utils::validate_archive(archive) {
         println!("Invalid value for 'archive'. Only 0 or 1 allowed.");
         return;
     }
-    if starred != 0 && starred != 1 {
+    if !utils::validate_starred(starred) {
         println!("Invalid value for 'starred'. Only 0 or 1 allowed.");
         return;
     }
-    if public != 0 && public != 1 {
+    if !utils::validate_public(public) {
         println!("Invalid value for 'public'. Only 0 or 1 allowed.");
         return;
     }
-    let valid_sorts: [&str; 3] = ["created", "updated", "archived"];
-    if !valid_sorts.contains(&sort) {
+    if !utils::validate_sort(sort) {
         println!("Invalid value for 'sort'. Only 'created', 'updated', or 'archived' allowed.");
         return;
     }
-    let valid_orders: [&str; 2] = ["asc", "desc"];
-    if !valid_orders.contains(&order) {
+    if !utils::validate_order(order) {
         println!("Invalid value for 'order'. Only 'asc' or 'desc' allowed.");
         return;
     }
-    let valid_details: [&str; 2] = ["metadata", "full"];
-    if !valid_details.contains(&detail) {
+    if !utils::validate_detail(detail) {
         println!("Invalid value for 'detail'. Only 'metadata' or 'full' allowed.");
         return;
     }
@@ -131,58 +128,56 @@ pub async fn get_entries(
             return;
         }
     };
+
     let client: Client = Client::new();
     let url: String = format!("{}/api/entries", config.base_url.trim_end_matches('/'));
-    let mut req: reqwest::RequestBuilder = client.get(&url).bearer_auth(access_token);
-    let query_params: Vec<(&str, String)> = vec![
-        ("archive", archive.to_string()),
-        ("starred", starred.to_string()),
-        ("sort", sort.to_string()),
-        ("order", order.to_string()),
-        ("page", page.to_string()),
-        ("perPage", per_page.to_string()),
-        ("tags", tags.to_string()),
-        ("since", since.to_string()),
-        ("public", public.to_string()),
-        ("detail", detail.to_string()),
-        ("domain_name", domain_name.to_string()),
-    ];
-    req = req.query(&query_params);
-    let resp: Result<Response, Error> = req.send().await;
+    let query_params = utils::build_query_params(
+        archive,
+        starred,
+        sort,
+        order,
+        page,
+        per_page,
+        tags,
+        since,
+        public,
+        detail,
+        domain_name,
+    );
+
+    let resp: Result<Response, Error> = client
+        .get(&url)
+        .bearer_auth(access_token)
+        .query(&query_params)
+        .send()
+        .await;
+
     if resp.is_err() {
         eprintln!("Request error: {}", resp.unwrap_err());
         return;
     }
-    let r: Response = resp.unwrap();
-    if !r.status().is_success() {
-        println!("Failed to get entries: {}", r.status());
-        if let Ok(text) = r.text().await {
-            println!("Response: {}", text);
-        }
-        return;
-    }
-    let text: String = match r.text().await {
-        Ok(t) => t,
-        Err(e) => {
-            eprintln!("Failed to read response: {}", e);
-            return;
-        }
-    };
-    let json: value::Value = match serde_json::from_str::<serde_json::Value>(&text) {
+
+    let json = match utils::handle_response(resp.unwrap()).await {
         Ok(j) => j,
         Err(e) => {
-            eprintln!("Failed to parse response: {}", e);
+            if e == "invalid_grant" {
+                login().await;
+            }
+            eprintln!("{}", e);
             return;
         }
     };
+
     let items: Option<&Vec<value::Value>> = json
         .get("_embedded")
         .and_then(|e: &value::Value| e.get("items"))
         .and_then(|i: &value::Value| i.as_array());
+
     if items.is_none() {
         println!("No entries found.");
         return;
     }
+
     for item in items.unwrap() {
         let title: Option<&str> = item.get("title").and_then(|t: &value::Value| t.as_str());
         let id = item.get("id").and_then(|i: &value::Value| i.as_u64());
@@ -202,14 +197,8 @@ pub async fn get_entries(
             .get("starred")
             .and_then(|s: &value::Value| s.as_u64())
             .unwrap_or(0) as u8;
-        println!(
-            "{} | {} | {} | {} | {}",
-            id.to_string().blue(),
-            title.unwrap().green(),
-            url.yellow(),
-            archive,
-            starred
-        );
+
+        utils::print_entry(id, title.unwrap(), url, archive, starred);
     }
 }
 

@@ -1,5 +1,6 @@
-pub mod config;
-pub mod wallabag;
+mod config;
+mod utils;
+mod wallabag;
 
 use clap::{Parser, Subcommand};
 use tokio::runtime;
@@ -83,6 +84,9 @@ fn main() {
             Commands::Login => {
                 wallabag::login().await;
             }
+            // Commands::Logout => {
+            //     wallabag::logout().await;
+            // }
             Commands::Add { url } => {
                 wallabag::add_entry(&url).await;
             }

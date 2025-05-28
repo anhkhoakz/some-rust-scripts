@@ -1,0 +1,28 @@
+[package]
+    name = "json-server"
+    authors = [""]
+    description = "A json api and static files server"
+    version = "0.1.4"
+    edition = "2024"
+
+[dependencies]
+    axum = { version = "0.8.4", features = ["multipart"] }
+    chrono = { version = "0.4.41", features = ["serde"] }
+    clap = { version = "4.5.37", features = ["derive"] }
+    ctrlc = "3.4.6"
+    hyper = { version = "1.6.0", features = ["full"] }
+    env_logger = "0.11.8"
+    log = "0.4"
+    rayon = "1.10.0"
+    serde = { version = "1.0.219", features = ["derive"] }
+    serde_json = "1.0.140"
+    tokio = { version = "1.44.2", features = ["full"] }
+    tower-http = { version = "0.6.2", features = ["full"] }
+    uuid = { version = "1.16.0", features = ["v4", "fast-rng"] }
+    hyper-util = "0.1.11"
+
+[profile.release]
+    lto = true
+    strip = true
+    codegen-units = 1
+    panic = "abort"
