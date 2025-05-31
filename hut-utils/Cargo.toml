@@ -1,0 +1,27 @@
+[package]
+    name = "hut-utils"
+    version = "0.1.0"
+    edition = "2024"
+    authors = ["anhkhoakz"]
+    description = "A simple Rust CLI app to interact with sourcehut"
+    license = "GPL-3.0"
+    readme = "README.md"
+    homepage = "https://github.com/anhkhoakz/some-rust-scripts/tree/main/hut-utils"
+    repository = "https://github.com/anhkhoakz/some-rust-scripts/tree/main/hut-utils"
+    documentation = "https://docs.rs/hut-utils"
+    keywords = ["hut", "sourcehut", "rust", "cli"]
+    categories = ["command-line-utilities"]
+    rust-version = "1.87.0"
+    exclude = ["target", "Cargo.lock", "README.md", ".gitignore", ".vscode"]
+
+[dependencies]
+    clap = { version = "4.5.39", features = ["derive"] }
+    colored = "3.0.0"
+    which = "7.0.3"
+
+[profile.release]
+    opt-level = "z"
+    lto = true
+    codegen-units = 1
+    panic = "abort"
+    strip = true
