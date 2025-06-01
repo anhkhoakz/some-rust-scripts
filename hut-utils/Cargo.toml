@@ -1,6 +1,6 @@
 [package]
     name = "hut-utils"
-    version = "0.1.0"
+    version = "0.1.1"
     edition = "2024"
     authors = ["anhkhoakz"]
     description = "A simple Rust CLI app to interact with sourcehut"

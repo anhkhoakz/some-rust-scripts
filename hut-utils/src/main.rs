@@ -65,6 +65,17 @@ enum PasteCommands {
         #[arg(short = 'v', long, default_value = DEFAULT_VISIBILITY, value_enum)]
         visibility: Visibility,
     },
+
+    /// Rename an existing paste
+    Rename {
+        /// Paste ID to rename
+        #[arg(short = 'i', long)]
+        paste_id: String,
+
+        /// New name for the paste
+        #[arg(short = 'n', long)]
+        new_name: String,
+    },
 }
 
 /// Enum for visibility
@@ -125,6 +136,21 @@ fn run(cli: Cli) -> Result<(), AppError> {
 
                 println!(
                     "{} Paste update completed successfully",
+                    "[SUCCESS]".green().bold()
+                );
+                Ok(())
+            }
+            PasteCommands::Rename { paste_id, new_name } => {
+                println!(
+                    "{} Renaming paste {} to {}",
+                    "[INFO]".blue().bold(),
+                    paste_id.cyan(),
+                    new_name.cyan()
+                );
+                rename_paste(&paste_id, &new_name)?;
+
+                println!(
+                    "{} Paste rename completed successfully",
                     "[SUCCESS]".green().bold()
                 );
                 Ok(())
@@ -265,6 +291,70 @@ fn create_paste(source_file: &str, visibility: Visibility) -> Result<(), AppErro
         "{} Successfully created new paste for {}: {}",
         "[SUCCESS]".green().bold(),
         source_file.cyan(),
+        url.cyan()
+    );
+
+    Ok(())
+}
+
+fn show_paste(paste_id: &str) -> Result<String, AppError> {
+    let output: String = execute_hut_command(&[PASTE_COMMAND, "show", paste_id])?;
+    Ok(output)
+}
+
+fn rename_paste(paste_id: &str, new_name: &str) -> Result<(), AppError> {
+    println!(
+        "{} Getting content of paste {}...",
+        "[INFO]".blue().bold(),
+        paste_id.cyan()
+    );
+
+    let content: String = show_paste(paste_id)?;
+    let content: String = content.lines().skip(2).collect::<Vec<&str>>().join("\n");
+
+    println!("{} Deleting old paste...", "[INFO]".blue().bold());
+    delete_paste(paste_id)?;
+
+    println!(
+        "{} Creating new paste with name {}...",
+        "[INFO]".blue().bold(),
+        new_name.cyan()
+    );
+
+    // Create new paste with the filtered content
+    let mut child: Child = Command::new(HUT_COMMAND)
+        .args([
+            PASTE_COMMAND,
+            "create",
+            "--name",
+            new_name,
+            "--visibility",
+            Visibility::Unlisted.as_str(),
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()?;
+
+    if let Some(stdin) = child.stdin.as_mut() {
+        stdin.write_all(content.as_bytes())?;
+    }
+
+    let output: Output = child.wait_with_output()?;
+
+    if !output.status.success() {
+        return Err(AppError::CommandError(format!(
+            "Failed to create paste with name '{}'",
+            new_name
+        )));
+    }
+
+    let url: String = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
+    println!(
+        "{} Successfully renamed paste to {}: {}",
+        "[SUCCESS]".green().bold(),
+        new_name.cyan(),
         url.cyan()
     );
 

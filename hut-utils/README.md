@@ -3,7 +3,7 @@
 [![Crates.io Version](https://img.shields.io/crates/v/hut-utils?style=for-the-badge)](https://crates.io/crates/hut-utils)
 [![Crates.io Downloads](https://img.shields.io/crates/d/hut-utils?style=for-the-badge)](https://crates.io/crates/hut-utils)
 [![Crates.io Size](https://img.shields.io/crates/size/aspect-ratio?style=for-the-badge)](https://crates.io/crates/hut-utils)
-[![License: GPL-2.0](https://img.shields.io/crates/l/hut-utils?style=for-the-badge&logo=gnu&color=A42E2B)](LICENSE)
+[![License](https://img.shields.io/crates/l/hut-utils?style=for-the-badge&logo=gnu&color=A42E2B)](LICENSE)
 
 ## About
 
@@ -20,6 +20,8 @@
 - [Rust](https://www.rust-lang.org/tools/install) (1.87.0 or later)
 - Cargo (comes with Rust)
 - [Just](https://github.com/casey/just) (optional, for build and install from source)
+- [Sourcehut](https://sourcehut.org/) account
+- [Sourcehut CLI](https://sr.ht/~xenrox/hut/)
 
 ### Building
 
