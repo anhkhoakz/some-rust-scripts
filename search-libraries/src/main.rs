@@ -1,79 +1,66 @@
+use clap::Parser;
 use reqwest::Client;
-use serde::Serialize;
 use serde_json::Value;
-use std::collections::HashMap;
 use std::error::Error;
-use std::fs::File;
-use std::io::Write;
 
-pub struct ApiClient {
-    search_url: String,
-    params: HashMap<String, String>,
-    user_agent: Option<String>,
+const DEFAULT_PAGE_SIZE: &str = "25";
+const CRATES_API_URL: &str = "https://crates.io/api/v1/crates";
+const NPM_API_URL: &str = "https://api.npms.io/v2/search";
+const DOCKER_API_URL: &str = "https://index.docker.io/v1/search";
+const COMPOSER_API_URL: &str = "https://packagist.org/search.json";
+const JSDELIVR_API_URL: &str = "https://ofcncog2cu-dsn.algolia.net/1/indexes/npm-search/query";
+const SUPPORTED_SOURCES: &[&str] = &["npm", "docker", "jsdelivr", "crates", "composer"];
+
+/// Command-line arguments
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Source to search (npm, docker, jsdelivr, crates, composer)
+    #[arg()]
+    source: String,
+
+    /// Query string to search for
+    #[arg()]
+    query: String,
 }
 
-impl ApiClient {
-    pub fn new(search_url: &str, user_agent: Option<&str>) -> Self {
-        Self {
-            search_url: search_url.to_string(),
-            params: HashMap::new(),
-            user_agent: user_agent.map(|ua: &str| ua.to_string()),
-        }
-    }
-
-    pub fn set_param(mut self, key: &str, value: &str) -> Self {
-        self.params.insert(key.to_string(), value.to_string());
-        self
-    }
-
-    pub async fn get(&self, endpoint: &str) -> Result<Value, Box<dyn Error>> {
-        let url: String = format!("{}{}", self.search_url, endpoint);
-        let client: Client = Client::new();
-        let mut request: reqwest::RequestBuilder = client.get(&url).query(&self.params);
-
-        if let Some(user_agent) = &self.user_agent {
-            request = request.header("User-Agent", user_agent);
-        }
-
-        let response: reqwest::Response = request.send().await?;
-        Ok(response.json().await?)
-    }
+/// Search crates.io
+async fn search_crates(query: &str) -> Result<Value, Box<dyn Error>> {
+    let client: Client = Client::new();
+    let res: reqwest::Response = client
+        .get(CRATES_API_URL)
+        .query(&[("q", query), ("page", "1"), ("per_page", DEFAULT_PAGE_SIZE)])
+        .header("User-Agent", "my_crawler (help@my_crawler.com)")
+        .send()
+        .await?;
+    Ok(res.json::<Value>().await?)
 }
 
-pub async fn search_crates(query: Option<&str>) -> Result<Value, Box<dyn Error>> {
-    ApiClient::new(
-        "https://crates.io/api/v1/",
-        Some("my_crawler (help@my_crawler.com)"),
-    )
-    .set_param("page", "1")
-    .set_param("per_page", "25")
-    .set_param("q", query.unwrap_or(""))
-    .get("crates")
-    .await
+/// Search npm
+async fn search_npm(query: &str) -> Result<Value, Box<dyn Error>> {
+    let client: Client = Client::new();
+    let res: reqwest::Response = client
+        .get(NPM_API_URL)
+        .query(&[("q", query), ("size", DEFAULT_PAGE_SIZE)])
+        .send()
+        .await?;
+    Ok(res.json::<Value>().await?)
 }
 
-pub async fn search_npm(query: Option<&str>) -> Result<Value, Box<dyn Error>> {
-    ApiClient::new("https://api.npms.io/v2/search/", None)
-        .set_param("q", query.unwrap_or(""))
-        .set_param("size", "25")
-        .get("search")
-        .await
-}
-
-pub async fn search_jsdelivr(query: Option<&str>) -> Result<Value, Box<dyn Error>> {
-    let query: &str = query.unwrap_or("");
-    let attributes_to_retrieve: [&str; 4] = ["name", "version", "description", "homepage"];
-
+/// Search jsDelivr
+async fn search_jsdelivr(query: &str) -> Result<Value, Box<dyn Error>> {
+    let client: Client = Client::new();
+    let attrs: [&str; 4] = ["name", "version", "description", "homepage"];
     let payload: Value = serde_json::json!({
         "params": format!(
-            "query={}&page=0&hitsPerPage=25&attributesToHighlight=[]&attributesToRetrieve={}",
+            "query={}&page=0&hitsPerPage={}&attributesToHighlight=[]&attributesToRetrieve={}",
             query,
-            serde_json::to_string(&attributes_to_retrieve)?
+            DEFAULT_PAGE_SIZE,
+            serde_json::to_string(&attrs)?
         )
     });
-
-    let response: reqwest::Response = Client::new()
-        .post("https://ofcncog2cu-dsn.algolia.net/1/indexes/npm-search/query")
+    let res: reqwest::Response = client
+        .post(JSDELIVR_API_URL)
         .header(
             "x-algolia-agent",
             "Algolia for JavaScript (3.35.1); Browser (lite)",
@@ -83,83 +70,70 @@ pub async fn search_jsdelivr(query: Option<&str>) -> Result<Value, Box<dyn Error
         .json(&payload)
         .send()
         .await?;
-
-    if response.status().is_success() {
-        let hits: Value = response
-            .json::<Value>()
-            .await?
-            .get("hits")
-            .cloned()
-            .unwrap_or_else(|| serde_json::json!([]));
-        Ok(hits)
-    } else {
-        Err(Box::new(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            response.text().await?,
-        )))
-    }
+    let v: Value = res.json::<Value>().await?;
+    Ok(v.get("hits")
+        .cloned()
+        .unwrap_or_else(|| serde_json::json!([])))
 }
 
-pub async fn search_docker(query: Option<&str>) -> Result<Value, Box<dyn Error>> {
-    ApiClient::new("https://index.docker.io/v1/search", None)
-        .set_param("q", query.unwrap_or(""))
-        .set_param("page", "1")
-        .get("")
-        .await
+/// Search Docker Hub
+async fn search_docker(query: &str) -> Result<Value, Box<dyn Error>> {
+    let client: Client = Client::new();
+    let res: reqwest::Response = client
+        .get(DOCKER_API_URL)
+        .query(&[("q", query), ("page", "1")])
+        .send()
+        .await?;
+    Ok(res.json::<Value>().await?)
 }
 
-pub async fn search_composer(query: Option<&str>) -> Result<Value, Box<dyn Error>> {
-    ApiClient::new("https://packagist.org/search.json", None)
-        .set_param("q", query.unwrap_or(""))
-        .set_param("per_page", "25")
-        .get("")
-        .await
+/// Search Composer (Packagist)
+async fn search_composer(query: &str) -> Result<Value, Box<dyn Error>> {
+    let client: Client = Client::new();
+    let res: reqwest::Response = client
+        .get(COMPOSER_API_URL)
+        .query(&[("q", query), ("per_page", DEFAULT_PAGE_SIZE)])
+        .send()
+        .await?;
+    Ok(res.json::<Value>().await?)
 }
 
-pub fn write_json_to_file<T: Serialize>(data: &T, file_name: &str) -> Result<(), Box<dyn Error>> {
-    let json_string: String = serde_json::to_string_pretty(data)?;
-    File::create(file_name)?.write_all(json_string.as_bytes())?;
-    Ok(())
+/// Validate the source argument
+fn validate_source(source: &str) -> bool {
+    SUPPORTED_SOURCES.contains(&source)
+}
+
+/// Print error to stderr
+fn print_error(msg: &str) {
+    eprintln!("{}", msg);
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let args: Vec<String> = std::env::args().collect();
+    let args: Args = Args::parse();
 
-    if args.len() < 3 {
-        eprintln!("Usage: {} <source> <query>", args[0]);
-        return Ok(());
+    if !validate_source(&args.source) {
+        print_error(
+            "Unsupported source. Supported sources: npm, docker, jsdelivr, crates, composer.",
+        );
+        std::process::exit(1);
     }
 
-    let source: &String = &args[1];
-    let query: &String = &args[2];
-
-    let result: Result<Value, Box<dyn Error>> = match source.as_str() {
-        "npm" => search_npm(Some(query)).await,
-        "docker" => search_docker(Some(query)).await,
-        "jsdelivr" => search_jsdelivr(Some(query)).await,
-        "crates" => search_crates(Some(query)).await,
-        "composer" => search_composer(Some(query)).await,
-        _ => {
-            eprintln!("Unsupported source: {}. Supported sources are 'npm', 'docker', 'jsdelivr', 'crates', and 'composer'.", source);
-            return Ok(());
-        }
+    let result: Result<Value, Box<dyn Error>> = match args.source.as_str() {
+        "npm" => search_npm(&args.source).await,
+        "docker" => search_docker(&args.query).await,
+        "jsdelivr" => search_jsdelivr(&args.query).await,
+        "crates" => search_crates(&args.query).await,
+        "composer" => search_composer(&args.query).await,
+        _ => unreachable!(),
     };
 
     match result {
         Ok(data) => {
-            println!("{}", serde_json::to_string_pretty(&data)?);
+            println!("{}", serde_json::to_string(&data)?);
         }
         Err(error) => {
-            let error_response: Value = serde_json::json!({
-                "items": [
-                    {
-                        "title": "Error",
-                        "subtitle": error.to_string()
-                    }
-                ]
-            });
-            println!("{}", serde_json::to_string_pretty(&error_response)?);
+            print_error(&format!("Error: {}", error));
         }
     }
     Ok(())

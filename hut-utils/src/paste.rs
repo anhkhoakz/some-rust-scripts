@@ -59,7 +59,7 @@ pub fn handle_paste_command(action: PasteCommands) -> Result<(), AppError> {
             create_paste(&source_file, visibility)?;
 
             println!(
-                "{} Paste update completed successfully",
+                "{} Paste edit completed successfully",
                 "[SUCCESS]".green().bold()
             );
             Ok(())

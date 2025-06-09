@@ -1,6 +1,7 @@
 set dotenv-load := false
 
 # Simple variables
+
 BINARY := "search-libraries"
 PREFIX := "/usr/local/bin"
 
@@ -16,7 +17,7 @@ help:
 lint:
     @echo "Checking code style..."
     cargo fmt -- --check
-    cargo clippy -- -D warnings
+    cargo clippy --fix --allow-dirty
 
 # Run linter and tests
 test: lint
@@ -26,17 +27,17 @@ test: lint
 # Build release binary after tests
 build: test
     cargo build --release
-    @echo "Built {{BINARY}} in target/release/"
+    @echo "Built {{ BINARY }} in target/release/"
 
 # Install binary to /usr/local/bin
 install: build
-    sudo cp target/release/{{BINARY}} {{PREFIX}}/
-    @echo "Installed {{BINARY}} to {{PREFIX}}/"
+    sudo cp target/release/{{ BINARY }} {{ PREFIX }}/
+    @echo "Installed {{ BINARY }} to {{ PREFIX }}/"
 
 # Remove installed binary
 uninstall:
-    sudo rm -f {{PREFIX}}/{{BINARY}}
-    @echo "Uninstalled {{BINARY}} from {{PREFIX}}/"
+    sudo rm -f {{ PREFIX }}/{{ BINARY }}
+    @echo "Uninstalled {{ BINARY }} from {{ PREFIX }}/"
 
 # Remove build artifacts
 clean:

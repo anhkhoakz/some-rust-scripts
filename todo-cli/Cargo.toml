@@ -1,0 +1,21 @@
+[package]
+        name = "todo-cli"
+        version = "0.1.0"
+        edition = "2024"
+
+[dependencies]
+        clap = { version = "4.5.39", features = ["derive"] }
+        dirs = "6.0.0"
+        sqlx = { version = "0.8.6", features = [
+                "runtime-tokio-rustls",
+                "sqlite",
+                "migrate",
+        ] }
+        tokio = { version = "1.45.1", features = ["full"] }
+
+[profile.release]
+        opt-level = "z"
+        lto = true
+        codegen-units = 1
+        panic = "abort"
+        strip = true

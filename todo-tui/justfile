@@ -1,4 +1,4 @@
-BINARY := "hut-utils"
+BINARY := "aspect-ratio-cli"
 TARGET := "target/release/" + BINARY
 PREFIX := "/usr/local/bin"
 
@@ -52,8 +52,6 @@ clean:
     @echo "Cleaned build artifacts."
 
 # Runs tests and publishes the crate to crates.io
-publish version: test
+publish: test
     @echo "Publishing to crates.io..."
     cargo publish
-    git tag -a v{{ version }} -m "Release v{{ version }}"
-    git push
