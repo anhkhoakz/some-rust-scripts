@@ -6,6 +6,7 @@ pub struct SystemInfo {
     pub username: String,
     pub hostname: String,
     pub os: String,
+    pub os_release_name: String,
     pub os_version: String,
     pub architecture: String,
     pub model: String,
@@ -22,6 +23,9 @@ pub struct SystemInfo {
     pub network: NetworkInfo,
     pub battery: BatteryInfo,
     pub locale: String,
+    pub power_adapter: String,
+    pub terminal: String,
+    pub cursor: CursorResult,
 }
 
 #[derive(Debug)]
@@ -67,6 +71,24 @@ pub struct BatteryInfo {
 }
 
 #[derive(Debug)]
+pub struct CursorResult {
+    pub theme: String,
+    pub size: String,
+    pub error: Option<String>,
+}
+
+impl Default for CursorResult {
+    fn default() -> Self {
+        CursorResult {
+            theme: String::new(),
+            size: String::new(),
+            error: None,
+        }
+    }
+}
+
+#[derive(Debug)]
+#[allow(clippy::enum_variant_names)]
 pub enum SystemInfoError {
     CommandExecutionError(String),
     ParsingError(String),

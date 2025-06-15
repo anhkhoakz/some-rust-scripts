@@ -10,7 +10,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap},
 };
 use sqlx::{Row, Sqlite, migrate::MigrateDatabase, query, sqlite::SqlitePool};
 use std::fs::create_dir_all;
@@ -60,6 +60,7 @@ enum AppState {
     DoneList,
 }
 
+#[derive(Debug)]
 struct App {
     pool: SqlitePool,
     tasks: Vec<Task>,
@@ -68,8 +69,24 @@ struct App {
     input: String,
     input_mode: InputMode,
     app_state: AppState,
-    show_help: bool,
     editing_task_id: Option<i64>,
+    last_action: Option<LastAction>,
+}
+
+#[derive(Debug, Clone)]
+struct LastAction {
+    action_type: ActionType,
+    task_id: i64,
+    task_name: String,
+    was_done: bool,
+}
+
+#[derive(Debug, Clone)]
+enum ActionType {
+    Delete,
+    Toggle,
+    Add,
+    Edit,
 }
 
 impl App {
@@ -85,8 +102,8 @@ impl App {
             input: String::new(),
             input_mode: InputMode::Normal,
             app_state: AppState::TodoList,
-            show_help: false,
             editing_task_id: None,
+            last_action: None,
         };
 
         if !app.get_todo_tasks().is_empty() {
@@ -149,11 +166,62 @@ impl App {
         self.tasks.iter().filter(|task| task.is_done).collect()
     }
 
+    async fn undo(&mut self) -> Result<(), sqlx::Error> {
+        if let Some(last_action) = &self.last_action {
+            match last_action.action_type {
+                ActionType::Delete => {
+                    // Re-add the deleted task
+                    query("INSERT INTO todo (id, name, is_done) VALUES (?, ?, ?)")
+                        .bind(last_action.task_id)
+                        .bind(&last_action.task_name)
+                        .bind(if last_action.was_done { 1 } else { 0 })
+                        .execute(&self.pool)
+                        .await?;
+                }
+                ActionType::Toggle => {
+                    // Toggle back to previous state
+                    query("UPDATE todo SET is_done = ? WHERE id = ?")
+                        .bind(if last_action.was_done { 1 } else { 0 })
+                        .bind(last_action.task_id)
+                        .execute(&self.pool)
+                        .await?;
+                }
+                ActionType::Add => {
+                    // Remove the added task
+                    query("DELETE FROM todo WHERE id = ?")
+                        .bind(last_action.task_id)
+                        .execute(&self.pool)
+                        .await?;
+                }
+                ActionType::Edit => {
+                    // Restore previous task name
+                    query("UPDATE todo SET name = ? WHERE id = ?")
+                        .bind(&last_action.task_name)
+                        .bind(last_action.task_id)
+                        .execute(&self.pool)
+                        .await?;
+                }
+            }
+            self.tasks = Self::load_tasks(&self.pool).await?;
+            self.last_action = None;
+        }
+        Ok(())
+    }
+
     async fn add_task(&mut self, task_name: &str) -> Result<(), sqlx::Error> {
-        query("INSERT INTO todo (name) VALUES (?)")
+        let result = query("INSERT INTO todo (name) VALUES (?) RETURNING id")
             .bind(task_name)
-            .execute(&self.pool)
+            .fetch_one(&self.pool)
             .await?;
+
+        let task_id: i64 = result.get("id");
+
+        self.last_action = Some(LastAction {
+            action_type: ActionType::Add,
+            task_id,
+            task_name: task_name.to_string(),
+            was_done: false,
+        });
 
         self.tasks = Self::load_tasks(&self.pool).await?;
         Ok(())
@@ -169,12 +237,28 @@ impl App {
                 .execute(&self.pool)
                 .await?;
 
+            self.last_action = Some(LastAction {
+                action_type: ActionType::Toggle,
+                task_id,
+                task_name: task.name.clone(),
+                was_done: task.is_done,
+            });
+
             self.tasks = Self::load_tasks(&self.pool).await?;
         }
         Ok(())
     }
 
     async fn delete_task(&mut self, task_id: i64) -> Result<(), sqlx::Error> {
+        if let Some(task) = self.tasks.iter().find(|t| t.id == task_id) {
+            self.last_action = Some(LastAction {
+                action_type: ActionType::Delete,
+                task_id,
+                task_name: task.name.clone(),
+                was_done: task.is_done,
+            });
+        }
+
         query("DELETE FROM todo WHERE id = ?")
             .bind(task_id)
             .execute(&self.pool)
@@ -185,6 +269,15 @@ impl App {
     }
 
     async fn update_task(&mut self, task_id: i64, new_name: &str) -> Result<(), sqlx::Error> {
+        if let Some(task) = self.tasks.iter().find(|t| t.id == task_id) {
+            self.last_action = Some(LastAction {
+                action_type: ActionType::Edit,
+                task_id,
+                task_name: task.name.clone(),
+                was_done: task.is_done,
+            });
+        }
+
         query("UPDATE todo SET name = ? WHERE id = ?")
             .bind(new_name)
             .bind(task_id)
@@ -275,7 +368,7 @@ impl App {
     }
 }
 
-fn ui(f: &mut Frame, app: &App) {
+fn ui(f: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -286,19 +379,13 @@ fn ui(f: &mut Frame, app: &App) {
         .margin(1)
         .split(f.area());
 
-    // Title with modern styling
-    let title = Paragraph::new(Line::from(vec![
-        Span::styled(
-            "Todo TUI",
-            Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
-        ),
-        Span::raw(" - "),
-        Span::styled("Press '?' for help", Style::default().fg(Color::Yellow)),
-        Span::raw(" | "),
-        Span::styled("'q' to quit", Style::default().fg(Color::Red)),
-    ]))
+    // Enhanced title with modern styling
+    let title = Paragraph::new(Line::from(vec![Span::styled(
+        "Todo TUI",
+        Style::default()
+            .fg(Color::Cyan)
+            .add_modifier(Modifier::BOLD),
+    )]))
     .block(
         Block::default()
             .borders(Borders::ALL)
@@ -314,14 +401,14 @@ fn ui(f: &mut Frame, app: &App) {
         .margin(1)
         .split(chunks[1]);
 
-    // Todo list with modern styling
+    // Enhanced Todo list with modern styling
     let todo_tasks = app.get_todo_tasks();
     let todo_items: Vec<ListItem> = todo_tasks
         .iter()
         .map(|task| {
             ListItem::new(Line::from(vec![
-                Span::styled("○ ", Style::default().fg(Color::Blue)),
-                Span::raw(task.name.clone()),
+                Span::styled("○ ", Style::default().fg(Color::LightBlue)),
+                Span::styled(task.name.clone(), Style::default().fg(Color::White)),
             ]))
         })
         .collect();
@@ -333,34 +420,43 @@ fn ui(f: &mut Frame, app: &App) {
                 .title(Line::from(vec![
                     Span::styled(
                         "Todo",
-                        Style::default()
-                            .fg(Color::Blue)
-                            .add_modifier(Modifier::BOLD),
+                        if app.app_state == AppState::TodoList {
+                            Style::default()
+                                .fg(Color::LightBlue)
+                                .add_modifier(Modifier::BOLD)
+                        } else {
+                            Style::default().fg(Color::DarkGray)
+                        },
                     ),
-                    Span::raw(format!(" ({})", todo_tasks.len())),
+                    Span::styled(
+                        format!(" ({})", todo_tasks.len()),
+                        Style::default().fg(Color::DarkGray),
+                    ),
                 ]))
                 .border_style(if app.app_state == AppState::TodoList {
-                    Style::default().fg(Color::Yellow)
+                    Style::default().fg(Color::LightBlue)
                 } else {
-                    Style::default().fg(Color::Blue)
+                    Style::default().fg(Color::DarkGray)
                 }),
         )
-        .highlight_style(
+        .highlight_style(if app.app_state == AppState::TodoList {
             Style::default()
                 .add_modifier(Modifier::REVERSED)
-                .fg(Color::Yellow),
-        )
+                .fg(Color::LightBlue)
+        } else {
+            Style::default().fg(Color::DarkGray)
+        })
         .highlight_symbol("▶ ");
 
-    f.render_stateful_widget(todo_list, main_chunks[0], &mut app.todo_state.clone());
+    f.render_stateful_widget(todo_list, main_chunks[0], &mut app.todo_state);
 
-    // Done list with modern styling
+    // Enhanced Done list with modern styling
     let done_tasks = app.get_done_tasks();
     let done_items: Vec<ListItem> = done_tasks
         .iter()
         .map(|task| {
             ListItem::new(Line::from(vec![
-                Span::styled("✓ ", Style::default().fg(Color::Green)),
+                Span::styled("✓ ", Style::default().fg(Color::LightGreen)),
                 Span::styled(task.name.clone(), Style::default().fg(Color::DarkGray)),
             ]))
         })
@@ -373,28 +469,37 @@ fn ui(f: &mut Frame, app: &App) {
                 .title(Line::from(vec![
                     Span::styled(
                         "Done",
-                        Style::default()
-                            .fg(Color::Green)
-                            .add_modifier(Modifier::BOLD),
+                        if app.app_state == AppState::DoneList {
+                            Style::default()
+                                .fg(Color::LightGreen)
+                                .add_modifier(Modifier::BOLD)
+                        } else {
+                            Style::default().fg(Color::DarkGray)
+                        },
                     ),
-                    Span::raw(format!(" ({})", done_tasks.len())),
+                    Span::styled(
+                        format!(" ({})", done_tasks.len()),
+                        Style::default().fg(Color::DarkGray),
+                    ),
                 ]))
                 .border_style(if app.app_state == AppState::DoneList {
-                    Style::default().fg(Color::Yellow)
+                    Style::default().fg(Color::LightGreen)
                 } else {
-                    Style::default().fg(Color::Green)
+                    Style::default().fg(Color::DarkGray)
                 }),
         )
-        .highlight_style(
+        .highlight_style(if app.app_state == AppState::DoneList {
             Style::default()
                 .add_modifier(Modifier::REVERSED)
-                .fg(Color::Yellow),
-        )
+                .fg(Color::LightGreen)
+        } else {
+            Style::default().fg(Color::DarkGray)
+        })
         .highlight_symbol("▶ ");
 
-    f.render_stateful_widget(done_list, main_chunks[1], &mut app.done_state.clone());
+    f.render_stateful_widget(done_list, main_chunks[1], &mut app.done_state);
 
-    // Status bar with modern styling
+    // Enhanced Status bar with modern styling and better keybindings
     let status_text = match app.input_mode {
         InputMode::Normal => {
             let mode_style = Style::default()
@@ -406,24 +511,36 @@ fn ui(f: &mut Frame, app: &App) {
             Line::from(vec![
                 Span::styled("NORMAL", mode_style),
                 Span::raw(" | "),
-                Span::styled("j/k", key_style),
+                Span::styled("↑/↓", key_style),
                 Span::styled(": navigate", text_style),
                 Span::raw(" | "),
-                Span::styled("h/l", key_style),
+                Span::styled("←/→", key_style),
                 Span::styled(": switch lists", text_style),
                 Span::raw(" | "),
-                Span::styled("x", key_style),
+                Span::styled("Space", key_style),
                 Span::styled(": toggle", text_style),
                 Span::raw(" | "),
-                Span::styled("n", key_style),
-                Span::styled(": new task", text_style),
+                Span::styled("a", key_style),
+                Span::styled(": add", text_style),
+                Span::raw(" | "),
+                Span::styled("e", key_style),
+                Span::styled(": edit", text_style),
+                Span::raw(" | "),
+                Span::styled("d", key_style),
+                Span::styled(": delete", text_style),
+                Span::raw(" | "),
+                Span::styled("u", key_style),
+                Span::styled(": undo", text_style),
+                Span::raw(" | "),
+                Span::styled("q", key_style),
+                Span::styled(": quit", text_style),
             ])
         }
         InputMode::Adding => Line::from(vec![
             Span::styled(
-                "ADDING",
+                "ADD",
                 Style::default()
-                    .fg(Color::Green)
+                    .fg(Color::LightGreen)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(" | "),
@@ -431,14 +548,14 @@ fn ui(f: &mut Frame, app: &App) {
             Span::raw(": save | "),
             Span::styled("Esc", Style::default().fg(Color::Yellow)),
             Span::raw(": cancel | "),
-            Span::styled("Task: ", Style::default().fg(Color::White)),
-            Span::styled(app.input.clone(), Style::default().fg(Color::Cyan)),
+            Span::styled("New task: ", Style::default().fg(Color::White)),
+            Span::styled(app.input.clone(), Style::default().fg(Color::LightGreen)),
         ]),
         InputMode::Editing => Line::from(vec![
             Span::styled(
-                "EDITING",
+                "EDIT",
                 Style::default()
-                    .fg(Color::Yellow)
+                    .fg(Color::LightYellow)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(" | "),
@@ -446,8 +563,8 @@ fn ui(f: &mut Frame, app: &App) {
             Span::raw(": save | "),
             Span::styled("Esc", Style::default().fg(Color::Yellow)),
             Span::raw(": cancel | "),
-            Span::styled("Task: ", Style::default().fg(Color::White)),
-            Span::styled(app.input.clone(), Style::default().fg(Color::Cyan)),
+            Span::styled("Edit task: ", Style::default().fg(Color::White)),
+            Span::styled(app.input.clone(), Style::default().fg(Color::LightYellow)),
         ]),
     };
 
@@ -460,85 +577,6 @@ fn ui(f: &mut Frame, app: &App) {
         )
         .wrap(Wrap { trim: true });
     f.render_widget(status, chunks[2]);
-
-    // Help popup with modern styling
-    if app.show_help {
-        let popup_area = centered_rect(60, 70, f.area());
-        f.render_widget(Clear, popup_area);
-
-        let help_text = vec![
-            Line::from(vec![Span::styled(
-                "Help - Todo TUI",
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            )]),
-            Line::from(""),
-            Line::from(vec![Span::styled(
-                "Navigation",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            )]),
-            Line::from("  k      - Move up"),
-            Line::from("  j      - Move down"),
-            Line::from("  h      - Switch to Todo list"),
-            Line::from("  l      - Switch to Done list"),
-            Line::from(""),
-            Line::from(vec![Span::styled(
-                "Actions",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            )]),
-            Line::from("  n      - Add new task"),
-            Line::from("  x      - Mark task as done/undone"),
-            Line::from("  e      - Edit selected task"),
-            Line::from("  d      - Delete selected task"),
-            Line::from("  ?      - Show/hide this help"),
-            Line::from("  q      - Quit"),
-            Line::from(""),
-            Line::from(vec![Span::styled(
-                "Press any key to close help",
-                Style::default().fg(Color::DarkGray),
-            )]),
-        ];
-
-        let help_popup = Paragraph::new(help_text)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::Cyan))
-                    .title("Help")
-                    .title_alignment(ratatui::layout::Alignment::Center),
-            )
-            .wrap(Wrap { trim: true });
-        f.render_widget(help_popup, popup_area);
-    }
-}
-
-fn centered_rect(
-    percent_x: u16,
-    percent_y: u16,
-    r: ratatui::layout::Rect,
-) -> ratatui::layout::Rect {
-    let popup_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage((100 - percent_y) / 2),
-            Constraint::Percentage(percent_y),
-            Constraint::Percentage((100 - percent_y) / 2),
-        ])
-        .split(r);
-
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage((100 - percent_x) / 2),
-            Constraint::Percentage(percent_x),
-            Constraint::Percentage((100 - percent_x) / 2),
-        ])
-        .split(popup_layout[1])[1]
 }
 
 async fn run_tui() -> Result<(), Box<dyn std::error::Error>> {
@@ -566,7 +604,6 @@ async fn run_tui() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// Fixed: Removed generic parameter and type annotations
 async fn run_app(
     terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>,
     app: &mut App,
@@ -579,8 +616,10 @@ async fn run_app(
                 match app.input_mode {
                     InputMode::Normal => match key.code {
                         KeyCode::Char('q') => return Ok(()),
-                        KeyCode::Char('?') => app.show_help = !app.show_help,
-                        KeyCode::Char('n') => {
+                        KeyCode::Char('u') => {
+                            let _ = app.undo().await;
+                        }
+                        KeyCode::Char('a') => {
                             app.input_mode = InputMode::Adding;
                             app.input.clear();
                         }
@@ -602,7 +641,7 @@ async fn run_app(
                                 app.done_state.select(Some(0));
                             }
                         }
-                        KeyCode::Char('x') => {
+                        KeyCode::Char(' ') => {
                             if let Some(task_id) = app.get_selected_task_id() {
                                 let _ = app.toggle_task(task_id).await;
                             }
@@ -669,10 +708,6 @@ async fn run_app(
                         }
                         _ => {}
                     },
-                }
-
-                if app.show_help && app.input_mode == InputMode::Normal {
-                    app.show_help = false;
                 }
             }
         }

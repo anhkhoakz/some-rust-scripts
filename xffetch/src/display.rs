@@ -1,6 +1,5 @@
 use crate::output::{OutputHelper, OutputOptions, OutputType};
 use crate::types::{COLORS, SystemInfo};
-use comfy_table::{Cell, Color, Table, presets::UTF8_FULL};
 
 pub fn display_system_info(info: &SystemInfo) {
     let green: &str = COLORS[0];
@@ -14,8 +13,8 @@ pub fn display_system_info(info: &SystemInfo) {
 
     // Create header
     println!(
-        "{green}{username}@{hostname}{reset}",
-        green = green,
+        "{magenta}{username}@{hostname}{reset}",
+        magenta = magenta,
         username = info.username,
         hostname = info.hostname,
         reset = reset
@@ -27,7 +26,7 @@ pub fn display_system_info(info: &SystemInfo) {
     );
 
     // Create output helper with default options
-    let mut output = OutputHelper::new(OutputOptions {
+    let mut output: OutputHelper = OutputHelper::new(OutputOptions {
         output_type: OutputType::Rsfetch,
         caps: true,
         bold: true,
@@ -38,7 +37,10 @@ pub fn display_system_info(info: &SystemInfo) {
     // Add system information
     output.add(
         "OS",
-        &format!("{} {} {}", info.os, info.os_version, info.architecture),
+        &format!(
+            "{} {} {} {}",
+            info.os, info.os_release_name, info.os_version, info.architecture
+        ),
     );
     output.add("Host", &info.model);
     output.add("Kernel", &format!("Darwin {}", info.kernel));
@@ -52,12 +54,12 @@ pub fn display_system_info(info: &SystemInfo) {
     );
     output.add("Shell", &info.shell.version);
     output.add("Display", &info.display);
-    output.add("DE", "Aqua");
-    output.add("WM", "Quartz Compositor");
-    output.add("WM Theme", "Multicolor (Light)");
-    output.add("Font", ".AppleSystemUIFont [System], Helvetica");
-    output.add("Cursor", "Fill - Black, Outline - White (32px)");
-    output.add("Terminal", "zellij 0.42.2");
+    output.add("DE", "_");
+    output.add("WM", "_");
+    output.add("WM Theme", "_");
+    output.add("Font", "_");
+    output.add("Cursor", &info.cursor.theme);
+    output.add("Terminal", &info.terminal);
     output.add("CPU", &format!("{} ({})", info.cpu.model, info.cpu.cores));
     output.add("GPU", &info.gpu);
     output.add("Memory", &format!("{:.2} GiB", info.memory));
@@ -75,12 +77,12 @@ pub fn display_system_info(info: &SystemInfo) {
             info.disk.used, info.disk.total, info.disk.percentage
         ),
     );
-    output.add("Local IP (en0)", &format!("{}/24", info.network.local_ip));
+    output.add("Local IP (en0)", &format!("{}/_", info.network.local_ip));
     output.add(
         "Battery",
         &format!("{} [{}]", info.battery.percentage, info.battery.status),
     );
-    output.add("Power Adapter", "140W USB-C Power Adapter");
+    output.add("Power Adapter", &info.power_adapter);
     output.add("Locale", &info.locale);
 
     // Output the information

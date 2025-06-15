@@ -52,6 +52,7 @@ impl OutputHelper {
         self.data.push(item);
     }
 
+    #[allow(dead_code)]
     pub fn ascii(&mut self, ascii: String) {
         self.ascii = ascii;
     }
@@ -85,10 +86,8 @@ impl OutputHelper {
                     max_len_key = j.key.len();
                 }
                 // If not using borders, no need to calculate padding for `values`
-                if self.options.use_borders {
-                    if j.val.len() > max_len_val {
-                        max_len_val = j.val.len();
-                    }
+                if self.options.use_borders && j.val.len() > max_len_val {
+                    max_len_val = j.val.len();
                 }
             }
             // Set most options for borders
@@ -177,32 +176,32 @@ impl OutputHelper {
                 }
 
                 // print key and value
-                if key != "" {
+                if !key.is_empty() {
                     if self.options.bold {
-                        print!("{}{}[{}C{}\n", bold(&key), E, (key_width - key.len()), val);
+                        print!("{}{}[{}C{}", bold(&key), E, (key_width - key.len()), val);
                     } else {
-                        print!("{}{}[{}C{}\n", key, E, (key_width - key.len()), val);
+                        print!("{}{}[{}C{}", key, E, (key_width - key.len()), val);
                     }
                 } else if self.options.bold {
-                    print!("{}\n", bold(&val));
+                    println!("{}", bold(&val));
                 } else {
-                    print!("{}\n", val);
+                    println!("{}", val);
                 }
 
                 printed = c;
             }
 
             if ascii.len() > printed {
-                for i in (printed + 1)..ascii.len() {
+                for line in ascii.iter().skip(printed + 1) {
                     if self.options.bold {
-                        print!("{}\n", bold(&ascii[i]));
+                        println!("{}", bold(line));
                     } else {
-                        print!("{}\n", ascii[i]);
+                        println!("{}", line);
                     }
                 }
             }
 
-            print!("\n"); // newline
+            println!(); // newline
         }
     }
 }
