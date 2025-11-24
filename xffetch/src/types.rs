@@ -26,6 +26,7 @@ pub struct SystemInfo {
     pub power_adapter: String,
     pub terminal: String,
     pub cursor: CursorResult,
+    pub wifi: String,
 }
 
 #[derive(Debug)]

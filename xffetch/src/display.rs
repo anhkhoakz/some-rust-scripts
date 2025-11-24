@@ -85,6 +85,8 @@ pub fn display_system_info(info: &SystemInfo) {
     output.add("Power Adapter", &info.power_adapter);
     output.add("Locale", &info.locale);
 
+    output.add("Wifi", &info.wifi);
+
     // Output the information
     output.output();
 

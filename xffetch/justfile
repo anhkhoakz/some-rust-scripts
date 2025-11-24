@@ -26,25 +26,15 @@ build: test
     cargo build --release
     @echo "Built {{ BINARY }} in target/release/"
 
-# Installs the release binary to the system prefix (platform-specific)
-install:
-    if [ "$(uname)" = "Darwin" ] || [ "$(uname)" = "Linux" ]; then \
-        sudo cp {{ TARGET }} {{ PREFIX }}/ && \
-        echo "Installed {{ BINARY }} to {{ PREFIX }}/"; \
-    else \
-        copy {{ TARGET }} %USERPROFILE%\\.cargo\\bin\\ && \
-        echo "Installed {{ BINARY }} to %USERPROFILE%\\.cargo\\bin\\"; \
-    fi
+# Installs the release binary to the system prefix
+install: build
+    sudo cp {{ TARGET }} {{ PREFIX }}/ && \
+    echo "Installed {{ BINARY }} to {{ PREFIX }}/"
 
-# Removes the installed binary from the system prefix (platform-specific)
+# Removes the installed binary from the system prefix
 uninstall:
-    if [ "$(uname)" = "Darwin" ] || [ "$(uname)" = "Linux" ]; then \
-        sudo rm -f {{ PREFIX }}/{{ BINARY }} && \
-        echo "Uninstalled {{ BINARY }} from {{ PREFIX }}/"; \
-    else \
-        del %USERPROFILE%\\.cargo\\bin\\{{ BINARY }}.exe && \
-        echo "Uninstalled {{ BINARY }} from %USERPROFILE%\\.cargo\\bin\\"; \
-    fi
+    sudo rm -f {{ PREFIX }}/{{ BINARY }} && \
+    echo "Uninstalled {{ BINARY }} from {{ PREFIX }}/"
 
 # Removes build artifacts
 clean:
@@ -55,3 +45,7 @@ clean:
 publish: test
     @echo "Publishing to crates.io..."
     cargo publish
+
+# Run code
+run:
+    cargo run

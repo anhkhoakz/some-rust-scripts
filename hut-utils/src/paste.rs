@@ -9,9 +9,9 @@ use std::process::{Child, Command, Output, Stdio};
 /// Paste related commands
 #[derive(Subcommand)]
 pub enum PasteCommands {
-    /// Edit an existing paste
-    Edit {
-        /// Source file to edit as a paste
+    /// Update an existing paste (delete then create)
+    Update {
+        /// Source file to update as a paste
         #[arg(short = 's', long)]
         source_file: String,
 
@@ -38,28 +38,31 @@ pub enum PasteCommands {
 
 pub fn handle_paste_command(action: PasteCommands) -> Result<(), AppError> {
     match action {
-        PasteCommands::Edit {
+        PasteCommands::Update {
             source_file,
             remote_file,
             visibility,
         } => {
-            let paste_id: String = find_paste_id(&source_file)?;
             let remote_name: String = remote_file.clone().unwrap_or_else(|| source_file.clone());
-            //     let remote_id: String = find_paste_id(&remote_name)?;
+            let paste_id: String = find_paste_id(&remote_name)?;
 
             println!(
-                "{} Paste ID for {}: {}",
+                "{} Found existing paste for {} with ID: {}",
                 "[INFO]".blue().bold(),
                 remote_name.cyan(),
                 paste_id.cyan()
             );
 
+            // Step 1: Delete the existing paste
+            println!("{} Deleting existing paste...", "[INFO]".blue().bold());
             delete_paste(&paste_id)?;
 
+            // Step 2: Create a new paste
+            println!("{} Creating new paste...", "[INFO]".blue().bold());
             create_paste(&source_file, visibility)?;
 
             println!(
-                "{} Paste edit completed successfully",
+                "{} Paste update completed successfully (delete then create)",
                 "[SUCCESS]".green().bold()
             );
             Ok(())

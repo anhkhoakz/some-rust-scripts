@@ -22,3 +22,9 @@ build-all:
         fi; \
         cd ..; \
     done
+
+# Remove all binaries
+clean:
+    git clean -Xdf
+    fd --type=directory -HI 'target' -X rm -rf
+

@@ -1,0 +1,7 @@
+_default:
+    @echo "usage: just <recipe>"
+    @just --list
+
+# dev
+dev:
+    bun run tauri dev

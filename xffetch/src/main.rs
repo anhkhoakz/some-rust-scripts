@@ -1,3 +1,4 @@
+mod detection;
 mod display;
 mod output;
 mod system;

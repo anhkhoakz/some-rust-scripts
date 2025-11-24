@@ -1,15 +1,14 @@
 use crate::types::{
-    BatteryInfo, CpuInfo, CursorResult, DiskInfo, NetworkInfo, PackageInfo, ShellInfo, SwapInfo,
-    SystemInfo, SystemInfoError,
+    BatteryInfo, CpuInfo, DiskInfo, NetworkInfo, PackageInfo, ShellInfo, SwapInfo, SystemInfo,
+    SystemInfoError,
 };
 use std::env;
 use std::fs;
-use std::fs::File;
-use std::io::Read;
-use std::path::PathBuf;
 use std::process::Command;
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
+
+use crate::detection::cursor::detect_cursor_apple;
 
 /// Cache for command outputs to avoid repeated executions
 static COMMAND_CACHE: OnceLock<Mutex<std::collections::HashMap<String, (String, Instant)>>> =
@@ -85,6 +84,7 @@ pub fn get_system_info() -> Result<SystemInfo, SystemInfoError> {
         os_release_name: get_os_release_name()?,
         terminal: get_terminal()?,
         cursor: detect_cursor_apple(&env::var("HOME").unwrap_or_else(|_| "/".to_string())),
+        wifi: get_wifi_info()?,
     })
 }
 
@@ -119,22 +119,53 @@ fn get_os_release_name() -> Result<String, SystemInfoError> {
 /// Extracts uptime information from the system.
 fn get_uptime() -> Result<String, SystemInfoError> {
     let uptime: String = get_command_output("uptime", &[])?;
-    let uptime_parts = uptime
-        .split(',')
-        .next()
-        .unwrap_or("")
-        .split(r"  ")
-        .collect::<Vec<&str>>();
-    let days: String = uptime_parts[2].to_string();
-    let time: Vec<String> = uptime_parts[3]
-        .to_string()
-        .split(":")
-        .map(|s: &str| s.to_string())
-        .collect();
-    let hours: String = time[0].to_string();
-    let minutes: String = time[1].to_string();
-    let uptime_str: String = format!("{}, {} hours, {} mins", days, hours, minutes);
-    Ok(uptime_str)
+    let up_section = uptime.splitn(2, " up ").nth(1).ok_or_else(|| {
+        SystemInfoError::ParsingError("Could not find 'up' in uptime output".to_string())
+    })?;
+    let up_section = up_section.split(',').next().unwrap_or("").trim();
+    let mut days = None;
+    let mut hours = None;
+    let mut mins = None;
+    let mut parts = up_section.split_whitespace().peekable();
+    while let Some(part) = parts.next() {
+        if let Ok(num) = part.parse::<u64>() {
+            if let Some(&"days") = parts.peek() {
+                days = Some(num);
+                parts.next(); // consume 'days'
+            } else if part.contains(":") {
+                let time_parts: Vec<&str> = part.split(':').collect();
+                if time_parts.len() == 2 {
+                    hours = time_parts[0].parse::<u64>().ok();
+                    mins = time_parts[1].parse::<u64>().ok();
+                }
+            }
+        } else if part.contains(":") {
+            let time_parts: Vec<&str> = part.split(':').collect();
+            if time_parts.len() == 2 {
+                hours = time_parts[0].parse::<u64>().ok();
+                mins = time_parts[1].parse::<u64>().ok();
+            }
+        }
+    }
+    let mut result = String::new();
+    if let Some(d) = days {
+        result.push_str(&format!("{} days, ", d));
+    }
+    if let Some(h) = hours {
+        result.push_str(&format!("{} hours, ", h));
+    }
+    if let Some(m) = mins {
+        result.push_str(&format!("{} mins", m));
+    }
+    if result.ends_with(", ") {
+        result.truncate(result.len() - 2);
+    }
+    if result.is_empty() {
+        return Err(SystemInfoError::ParsingError(
+            "Could not parse uptime info".to_string(),
+        ));
+    }
+    Ok(result)
 }
 
 /// Retrieves package information from Homebrew.
@@ -395,61 +426,4 @@ fn format_color(r: u8, g: u8, b: u8, a: u8) -> String {
         (0, 0, 0, 255) => "Black".to_string(),
         _ => format!("#{:02X}{:02X}{:02X}{:02X}", r, g, b, a),
     }
-}
-
-/// Main function: detect cursor info for macOS, no external libraries.
-pub fn detect_cursor_apple(home_dir: &str) -> CursorResult {
-    let mut result = CursorResult::default();
-    let mut plist_path = PathBuf::from(home_dir);
-    plist_path.push("Library/Preferences/com.apple.universalaccess.plist");
-
-    let mut file = match File::open(&plist_path) {
-        Ok(f) => f,
-        Err(e) => {
-            result.error = Some(format!("Failed to open {}: {}", plist_path.display(), e));
-            return result;
-        }
-    };
-
-    let mut contents = String::new();
-    if let Err(e) = file.read_to_string(&mut contents) {
-        result.error = Some(format!("Failed to read {}: {}", plist_path.display(), e));
-        return result;
-    }
-
-    result.theme.push_str("Fill - ");
-    if let Some(color_str) = get_plist_dict_value(&contents, "cursorFill") {
-        if let Some((r, g, b, a)) = parse_color_dict(color_str) {
-            result.theme.push_str(&format_color(r, g, b, a));
-        } else {
-            result.theme.push_str("Black");
-        }
-    } else {
-        result.theme.push_str("Black");
-    }
-
-    result.theme.push_str(", Outline - ");
-    if let Some(color_str) = get_plist_dict_value(&contents, "cursorOutline") {
-        if let Some((r, g, b, a)) = parse_color_dict(color_str) {
-            result.theme.push_str(&format_color(r, g, b, a));
-        } else {
-            result.theme.push_str("White");
-        }
-    } else {
-        result.theme.push_str("White");
-    }
-
-    // Cursor size (default: 32)
-    if let Some(size_str) = get_plist_dict_value(&contents, "mouseDriverCursorSize") {
-        if let Ok(size_f) = size_str.parse::<f64>() {
-            let size = (size_f * 32.0).round() as u32;
-            result.size = size.to_string();
-        } else {
-            result.size = "32".to_string();
-        }
-    } else {
-        result.size = "32".to_string();
-    }
-
-    result
 }

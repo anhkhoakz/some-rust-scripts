@@ -1,0 +1,29 @@
+[package]
+        name = "password-generator"
+        version = "0.1.0"
+        edition = "2021"
+        authors = ["Enterprise Password Generator"]
+        description = "Enterprise-grade password generator with high performance"
+        license = "MIT OR Apache-2.0"
+        repository = "https://github.com/example/password-generator"
+
+[dependencies]
+        anyhow = "1.0"
+        clap = { version = "4.5", features = ["derive"] }
+        reqwest = { version = "0.12", features = ["json"] }
+        serde = { version = "1.0", features = ["derive"] }
+        serde_json = "1.0"
+        tokio = { version = "1.48", features = ["rt", "time"] }
+
+[profile.release]
+        panic = "abort"
+        codegen-units = 1
+        lto = "fat"
+        incremental = false
+        opt-level = "z"
+        strip = true
+        debug = false
+
+[profile.dev]
+        opt-level = 1
+        debug = true
