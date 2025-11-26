@@ -1,11 +1,30 @@
 [package]
 name = "git-send"
 version = "0.1.0"
+description = "Commit and push changes with a single command"
 edition = "2024"
+authors = ["anhkhoakz"]
+readme = "README.md"
 
 [dependencies]
-clap = "4.5.53"
-dirs = "6.0.0"
-serde = { version = "1.0.228", features = ["derive"] }
-duct = "1.1.1"
-colored = "3.0.0"
+clap = { version = "4.5.53" }
+dirs = { version = "6.0.0" }
+duct = { version = "1.1.1" }
+colored = { version = "3.0.0" }
+
+[dependencies.serde]
+version = "1.0.228"
+features = ["derive"]
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = "fat"
+incremental = false
+opt-level = "z"
+strip = true
+debug = false
+
+[profile.dev]
+opt-level = 1
+debug = true

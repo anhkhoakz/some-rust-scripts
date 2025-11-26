@@ -1,13 +1,14 @@
-use clap::{Arg, ArgAction, Command};
+use clap::{Arg, ArgAction, ArgMatches, Command};
 use colored::*;
 use dirs::config_dir;
 use duct::cmd;
 use serde::Deserialize;
-use std::{
-    env,
-    fs,
-    path::{Path, PathBuf},
-};
+use std::borrow::Cow;
+use std::env;
+use std::fs;
+use std::path::Path;
+use std::path::PathBuf;
+use std::process::Output;
 
 #[derive(Debug, Deserialize)]
 struct Config {
@@ -28,7 +29,7 @@ impl Config {
             };
         }
 
-        let content = fs::read_to_string(path).unwrap_or_default();
+        let content: String = fs::read_to_string(path).unwrap_or_default();
         let mut cfg = Config {
             default_msg: None,
             dry_run: None,
@@ -36,10 +37,10 @@ impl Config {
             no_push: None,
         };
 
-        for line in content.lines() {
+        'label: for line in content.lines() {
             let line = line.trim();
             if line.is_empty() || line.starts_with('#') {
-                continue;
+                continue 'label;
             }
             if let Some((key, val)) = line.split_once('=') {
                 match key.trim() {
@@ -57,11 +58,18 @@ impl Config {
 }
 
 fn run_git(args: &[&str]) -> Result<(), String> {
-    let out = cmd("git", args)
+    let out: Output = cmd("git", args)
         .stderr_to_stdout()
         .stdout_capture()
         .run()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            e.to_string()
+        })?;
+
+    let message: Cow<str> = String::from_utf8_lossy(&out.stdout);
+    if !message.trim().is_empty() {
+        eprint!("{}", message);
+    }
 
     if !out.status.success() {
         return Err(String::from_utf8_lossy(&out.stdout).to_string());
@@ -71,7 +79,7 @@ fn run_git(args: &[&str]) -> Result<(), String> {
 }
 
 fn main() {
-    let matches = Command::new("git-send")
+    let matches: ArgMatches = Command::new("git-send")
         .about("Stage, commit, pull, push in one shot")
         .version("2.0.0")
         .arg(
@@ -113,50 +121,50 @@ fn main() {
         )
         .get_matches();
 
-    let config_path = if let Some(path) = matches.get_one::<String>("config") {
+    let config_path: PathBuf = if let Some(path) = matches.get_one::<String>("config") {
         PathBuf::from(path)
     } else {
-        let mut p = config_dir().unwrap_or_else(|| PathBuf::from("~/.config"));
+        let mut p: PathBuf = config_dir().unwrap_or_else(|| PathBuf::from("~/.config"));
         p.push("git-send/config");
         p
     };
 
-    let file_cfg = Config::load(&config_path);
+    let file_cfg: Config = Config::load(&config_path);
 
-    let cli_message = matches.get_one::<String>("message").cloned();
-    let positional = matches.get_one::<String>("pos_msg").cloned();
+    let cli_message: Option<String> = matches.get_one::<String>("message").cloned();
+    let positional: Option<String> = matches.get_one::<String>("pos_msg").cloned();
 
-    let default_msg = env::var("GIT_SEND_DEFAULT_MSG")
+    let default_msg: String = env::var("GIT_SEND_DEFAULT_MSG")
         .ok()
         .or(file_cfg.default_msg)
         .unwrap_or_else(|| "I'm too lazy to write a commit message.".to_string());
 
-    let commit_message = cli_message
+    let commit_message: String = cli_message
         .or(positional)
         .unwrap_or(default_msg);
 
-    let dry_run = matches.get_flag("dry_run")
+    let dry_run: bool = matches.get_flag("dry_run")
         || env::var("GIT_SEND_DRY_RUN").map(|v| v == "1").unwrap_or(false)
         || file_cfg.dry_run == Some(1);
 
-    let no_pull = matches.get_flag("no_pull")
+    let no_pull: bool = matches.get_flag("no_pull")
         || env::var("GIT_SEND_NO_PULL").map(|v| v == "1").unwrap_or(false)
         || file_cfg.no_pull == Some(1);
 
-    let no_push = matches.get_flag("no_push")
+    let no_push: bool = matches.get_flag("no_push")
         || env::var("GIT_SEND_NO_PUSH").map(|v| v == "1").unwrap_or(false)
         || file_cfg.no_push == Some(1);
 
-    let branch = cmd("git", &["rev-parse", "--abbrev-ref", "HEAD"])
+    let branch: String = cmd("git", &["rev-parse", "--abbrev-ref", "HEAD"])
         .read()
         .unwrap_or_else(|_| {
             eprintln!("{}", "Not a git repo".red());
             std::process::exit(1);
         });
 
-    let branch = branch.trim();
+    let branch: &str = branch.trim();
 
-    let remote_url = cmd("git", &["config", "remote.origin.url"])
+    let remote_url: String = cmd("git", &["config", "remote.origin.url"])
         .read()
         .unwrap_or_else(|_| "unknown".to_string());
 
