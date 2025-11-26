@@ -1,300 +1,214 @@
-use std::env;
-use std::fs;
-use std::io::{self, Write};
-use std::path::Path;
-use std::process::{Command, ExitStatus};
-use std::time::SystemTime;
-use std::collections::HashMap;
-use uuid::Uuid;
+use clap::{Arg, ArgAction, Command};
+use colored::*;
+use dirs::config_dir;
+use duct::cmd;
+use serde::Deserialize;
+use std::{
+    env,
+    fs,
+    path::{Path, PathBuf},
+};
 
-const SCRIPT_VERSION: &str = "2.0.0";
-const DEFAULT_COMMIT_MSG: &str = "I'm too lazy to write a commit message.";
-const CONFIG_DIR: &str = ".config/git-send";
-const CONFIG_FILE: &str = "config";
-
+#[derive(Debug, Deserialize)]
 struct Config {
-    dry_run: bool,
-    no_pull: bool,
-    no_push: bool,
-    commit_message: Option<String>,
-    default_commit_msg: String,
+    default_msg: Option<String>,
+    dry_run: Option<u8>,
+    no_pull: Option<u8>,
+    no_push: Option<u8>,
 }
 
 impl Config {
-    fn new() -> Self {
-        Config {
-            dry_run: false,
-            no_pull: false,
-            no_push: false,
-            commit_message: None,
-            default_commit_msg: DEFAULT_COMMIT_MSG.to_string(),
+    fn load(path: &Path) -> Self {
+        if !path.exists() {
+            return Self {
+                default_msg: None,
+                dry_run: None,
+                no_pull: None,
+                no_push: None,
+            };
         }
-    }
 
-    fn from_args_and_env(args: Vec<String>) -> Result<Self, String> {
-        let mut config = Config::new();
-        let mut config_file = format!("{}/{}", env::var("HOME").unwrap_or_default(), CONFIG_DIR);
-        let mut i = 1;
+        let content = fs::read_to_string(path).unwrap_or_default();
+        let mut cfg = Config {
+            default_msg: None,
+            dry_run: None,
+            no_pull: None,
+            no_push: None,
+        };
 
-        while i < args.len() {
-            match args[i].as_str() {
-                "-h" | "--help" => {
-                    print_help();
-                    std::process::exit(0);
-                }
-                "-v" | "--version" => {
-                    println!("git send v{}", SCRIPT_VERSION);
-                    std::process::exit(0);
-                }
-                "--dry-run" => config.dry_run = true,
-                "--no-pull" => config.no_pull = true,
-                "--no-push" => config.no_push = true,
-                "--config" => {
-                    i += 1;
-                    if i >= args.len() {
-                        return Err("Option --config requires an argument".to_string());
-                    }
-                    config_file = args[i].clone();
-                }
-                _ if !args[i].starts_with('-') => {
-                    if config.commit_message.is_some() {
-                        return Err("Multiple commit messages provided. Use -h for usage information.".to_string());
-                    }
-                    config.commit_message = Some(args[i].clone());
-                }
-                _ => return Err(format!("Unknown option: {}. Use -h for usage information.", args[i])),
+        for line in content.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
             }
-            i += 1;
-        }
-
-        // Load configuration file
-        if Path::new(&config_file).exists() {
-            let contents = fs::read_to_string(&config_file)
-                .map_err(|e| format!("Failed to read config file: {}", e))?;
-            for line in contents.lines() {
-                if line.trim().starts_with('#') || line.trim().is_empty() {
-                    continue;
-                }
-                let parts: Vec<&str> = line.splitn(2, '=').collect();
-                if parts.len() != 2 {
-                    continue;
-                }
-                let key = parts[0].trim();
-                let value = parts[1].trim();
-                match key {
-                    "default_msg" => config.default_commit_msg = value.to_string(),
-                    "dry_run" if value == "1" => config.dry_run = true,
-                    "no_pull" if value == "1" => config.no_pull = true,
-                    "no_push" if value == "1" => config.no_push = true,
-                    _ => eprintln!("Warning: Unknown configuration key: {}", key),
+            if let Some((key, val)) = line.split_once('=') {
+                match key.trim() {
+                    "default_msg" => cfg.default_msg = Some(val.trim().to_string()),
+                    "dry_run" => cfg.dry_run = val.trim().parse().ok(),
+                    "no_pull" => cfg.no_pull = val.trim().parse().ok(),
+                    "no_push" => cfg.no_push = val.trim().parse().ok(),
+                    _ => eprintln!("{}", format!("Unknown key: {}", key).yellow()),
                 }
             }
         }
 
-        // Apply environment variables
-        if let Ok(msg) = env::var("GIT_SEND_DEFAULT_MSG") {
-            config.default_commit_msg = msg;
-        }
-        if env::var("GIT_SEND_DRY_RUN").map(|v| v == "1").unwrap_or(false) {
-            config.dry_run = true;
-        }
-        if env::var("GIT_SEND_NO_PULL").map(|v| v == "1").unwrap_or(false) {
-            config.no_pull = true;
-        }
-        if env::var("GIT_SEND_NO_PUSH").map(|v| v == "1").unwrap_or(false) {
-            config.no_push = true;
-        }
-
-        Ok(config)
+        cfg
     }
 }
 
-fn print_help() {
-    println!(r#"
-git send - Commit and push changes with a single command
+fn run_git(args: &[&str]) -> Result<(), String> {
+    let out = cmd("git", args)
+        .stderr_to_stdout()
+        .stdout_capture()
+        .run()
+        .map_err(|e| e.to_string())?;
 
-USAGE:
-    git-send [OPTIONS] [COMMIT_MESSAGE]
-
-ARGUMENTS:
-    COMMIT_MESSAGE    Custom commit message (optional)
-
-OPTIONS:
-    -h, --help           Show this help message
-    -v, --version        Show version information
-    --dry-run            Show what would be done without actually doing it
-    --no-pull            Skip pulling latest changes before push
-    --no-push            Skip pushing changes (commit only)
-    --config FILE        Use custom configuration file
-
-EXAMPLES:
-    git-send                                    # Use default commit message
-    git-send "Fix bug in user authentication"   # Custom commit message
-    git-send --dry-run                          # Show what would be done
-    git-send "Quick fix"                        # Custom commit message
-    git-send --no-pull "Local changes only"     # Skip pull step
-
-DESCRIPTION:
-    git send automates the common workflow of staging, committing, and pushing
-    changes. It includes safety features like confirmation prompts and
-    configuration support.
-
-CONFIGURATION:
-    The script supports configuration via:
-    - Environment variables (GIT_SEND_*)
-    - Configuration file (~/.config/git-send/config)
-    - Command line options (highest priority)
-
-EXIT CODES:
-    0    Success
-    1    Error occurred
-    130  Operation cancelled (Ctrl+C)
-"#);
-}
-
-fn err(msg: &str) {
-    let timestamp = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .map(|d| {
-            let datetime = chrono::DateTime::<chrono::Utc>::from_timestamp(d.as_secs() as i64, 0).unwrap();
-            datetime.format("%Y-%m-%dT%H:%M:%S%z").to_string()
-        })
-        .unwrap_or_default();
-    eprintln!("\x1b[38;2;191;97;106m[{}]: Error: {}\x1b[0m", timestamp, msg);
-}
-
-fn info(msg: &str) {
-    eprintln!("\x1b[38;2;94;129;172mInfo: {}\x1b[0m", msg);
-}
-
-fn warn(msg: &str) {
-    eprintln!("\x1b[38;2;235;203;139mWarning: {}\x1b[0m", msg);
-}
-
-fn success(msg: &str) {
-    eprintln!("\x1b[38;2;163;190;140m{}\x1b[0m", msg);
-}
-
-fn run_git_command(args: &[&str], dry_run: bool) -> Result<ExitStatus, String> {
-    if dry_run {
-        info(&format!("Would run: git {}", args.join(" ")));
-        Ok(ExitStatus::default())
-    } else {
-        let output = Command::new("git")
-            .args(args)
-            .status()
-            .map_err(|e| format!("Failed to execute git command: {}", e))?;
-        Ok(output)
-    }
-}
-
-fn get_git_output(args: &[&str]) -> Result<String, String> {
-    let output = Command::new("git")
-        .args(args)
-        .output()
-        .map_err(|e| format!("Failed to execute git command: {}", e))?;
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
-    } else {
-        Err(String::from_utf8_lossy(&output.stderr).to_string())
-    }
-}
-
-fn send(config: Config) -> Result<(), String> {
-    let branch = get_git_output(&["rev-parse", "--abbrev-ref", "HEAD"])
-        .map_err(|_| "Failed to get current branch. Are you in a valid git repository?".to_string())?;
-    let remote_url = get_git_output(&["config", "remote.origin.url"])
-        .map_err(|_| "Failed to get remote URL. Are you in a valid git repository?".to_string())?;
-
-    let has_upstream = get_git_output(&["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"]).is_ok();
-    if !has_upstream {
-        info(&format!("Branch '{}' has no upstream. This will create a new remote branch.", branch));
+    if !out.status.success() {
+        return Err(String::from_utf8_lossy(&out.stdout).to_string());
     }
 
-    info(&format!("Working on {} branch (remote: {})", branch, remote_url));
-
-    if config.dry_run {
-        info("DRY RUN MODE - No changes will actually be made");
-        info("Would stage all changes (git add -A)");
-
-        let diff_output = get_git_output(&["diff", "--cached"]);
-        if diff_output.is_ok() && diff_output.unwrap().is_empty() {
-            info("No changes to commit.");
-        } else {
-            let commit_msg = config.commit_message.unwrap_or_else(|| config.default_commit_msg.clone());
-            info(&format!("Would commit with message: '{}'", commit_msg));
-        }
-
-        if !config.no_pull {
-            info(&format!("Would pull latest changes (git pull --rebase origin {})", branch));
-        }
-
-        if !config.no_push {
-            info(&format!("Would push changes (git push origin {})", branch));
-        }
-
-        success("Dry run completed");
-        return Ok(());
-    }
-
-    // Stage all changes
-    info("Staging all changes...");
-    if !run_git_command(&["add", "-A"], config.dry_run)?.success() {
-        return Err("Failed to stage changes. Check if files are readable and you have write permissions.".to_string());
-    }
-
-    // Check for changes
-    let diff_output = get_git_output(&["diff", "--cached"]);
-    if diff_output.is_ok() && diff_output.unwrap().is_empty() {
-        info("No changes to commit.");
-    } else {
-        let commit_msg = config.commit_message.unwrap_or_else(|| config.default_commit_msg.clone());
-        info(&format!("Committing changes with message: '{}'", commit_msg));
-        if !run_git_command(&["commit", "-m", &commit_msg], config.dry_run)?.success() {
-            return Err("Failed to commit changes. Check your git configuration and commit message.".to_string());
-        }
-        success("Changes committed successfully");
-    }
-
-    // Pull changes
-    if !config.no_pull {
-        info("Pulling latest changes...");
-        if !run_git_command(&["pull", "--rebase", "origin", &branch], config.dry_run)?.success() {
-            return Err("Failed to pull latest changes. Resolve conflicts and try again.".to_string());
-        }
-        success("Latest changes pulled successfully");
-    }
-
-    // Push changes
-    if !config.no_push {
-        info("Pushing changes...");
-        if !run_git_command(&["push", "origin", &branch], config.dry_run)?.success() {
-            return Err("Failed to push changes. Check your network connection and permissions.".to_string());
-        }
-        success("Changes pushed successfully");
-    }
-
-    success("All operations completed successfully");
     Ok(())
 }
 
 fn main() {
-    ctrlc::set_handler(|| {
-        eprintln!("\x1b[38;2;235;203;139mOperation cancelled.\x1b[0m");
-        std::process::exit(130);
-    }).expect("Error setting Ctrl-C handler");
+    let matches = Command::new("git-send")
+        .about("Stage, commit, pull, push in one shot")
+        .version("2.0.0")
+        .arg(
+            Arg::new("message")
+                .short('m')
+                .long("message")
+                .value_name("MSG")
+                .help("Commit message")
+                .num_args(1),
+        )
+        .arg(
+            Arg::new("dry_run")
+                .long("dry-run")
+                .help("Show operations without executing")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("no_pull")
+                .long("no-pull")
+                .help("Skip git pull")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("no_push")
+                .long("no-push")
+                .help("Skip git push")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("pos_msg")
+                .help("Commit message (positional)")
+                .num_args(1),
+        )
+        .arg(
+            Arg::new("config")
+                .long("config")
+                .num_args(1)
+                .help("Use custom config file"),
+        )
+        .get_matches();
 
-    let args: Vec<String> = env::args().collect();
-    let config = match Config::from_args_and_env(args) {
-        Ok(config) => config,
-        Err(e) => {
-            err(&e);
-            std::process::exit(1);
-        }
+    let config_path = if let Some(path) = matches.get_one::<String>("config") {
+        PathBuf::from(path)
+    } else {
+        let mut p = config_dir().unwrap_or_else(|| PathBuf::from("~/.config"));
+        p.push("git-send/config");
+        p
     };
 
-    if let Err(e) = send(config) {
-        err(&e);
+    let file_cfg = Config::load(&config_path);
+
+    let cli_message = matches.get_one::<String>("message").cloned();
+    let positional = matches.get_one::<String>("pos_msg").cloned();
+
+    let default_msg = env::var("GIT_SEND_DEFAULT_MSG")
+        .ok()
+        .or(file_cfg.default_msg)
+        .unwrap_or_else(|| "I'm too lazy to write a commit message.".to_string());
+
+    let commit_message = cli_message
+        .or(positional)
+        .unwrap_or(default_msg);
+
+    let dry_run = matches.get_flag("dry_run")
+        || env::var("GIT_SEND_DRY_RUN").map(|v| v == "1").unwrap_or(false)
+        || file_cfg.dry_run == Some(1);
+
+    let no_pull = matches.get_flag("no_pull")
+        || env::var("GIT_SEND_NO_PULL").map(|v| v == "1").unwrap_or(false)
+        || file_cfg.no_pull == Some(1);
+
+    let no_push = matches.get_flag("no_push")
+        || env::var("GIT_SEND_NO_PUSH").map(|v| v == "1").unwrap_or(false)
+        || file_cfg.no_push == Some(1);
+
+    let branch = cmd("git", &["rev-parse", "--abbrev-ref", "HEAD"])
+        .read()
+        .unwrap_or_else(|_| {
+            eprintln!("{}", "Not a git repo".red());
+            std::process::exit(1);
+        });
+
+    let branch = branch.trim();
+
+    let remote_url = cmd("git", &["config", "remote.origin.url"])
+        .read()
+        .unwrap_or_else(|_| "unknown".to_string());
+
+    eprintln!(
+        "{} {} ({})",
+        "Info: Working on branch".blue(),
+        branch,
+        remote_url
+    );
+
+    if dry_run {
+        eprintln!("{}", "Dry-run mode enabled".yellow());
+        eprintln!("Would: git add -A");
+        eprintln!("Would: git commit -m '{}'", commit_message);
+        if !no_pull {
+            eprintln!("Would: git pull --rebase origin {}", branch);
+        }
+        if !no_push {
+            eprintln!("Would: git push origin {}", branch);
+        }
+        println!("{}", "Dry-run complete".green());
+        return;
+    }
+
+    if let Err(e) = run_git(&["add", "-A"]) {
+        eprintln!("{}", format!("Failed staging: {}", e).red());
         std::process::exit(1);
     }
+
+    let diff = cmd("git", &["diff", "--cached", "--quiet"]).run();
+    if diff.is_err() {
+        if let Err(e) = run_git(&["commit", "-m", &commit_message]) {
+            eprintln!("{}", format!("Commit failed: {}", e).red());
+            std::process::exit(1);
+        }
+    } else {
+        eprintln!("{}", "No changes to commit".yellow());
+    }
+
+    if !no_pull {
+        if let Err(e) = run_git(&["pull", "--rebase", "origin", branch]) {
+            eprintln!("{}", format!("Pull failed: {}", e).red());
+            std::process::exit(1);
+        }
+    }
+
+    if !no_push {
+        if let Err(e) = run_git(&["push", "origin", branch]) {
+            eprintln!("{}", format!("Push failed: {}", e).red());
+            std::process::exit(1);
+        }
+    }
+
+    println!("{}", "Done".green());
 }

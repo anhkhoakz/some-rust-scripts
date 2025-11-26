@@ -141,7 +141,7 @@ async fn generate_via_api(
                 }
         }
 
-        Err(last_error.map(anyhow::Error::from).unwrap_or_else(|| {
+        Err(last_error.unwrap_or_else(|| {
                 anyhow::anyhow!(
                         "Failed after {} attempts",
                         generator.config.max_retries
