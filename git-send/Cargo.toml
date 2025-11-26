@@ -5,16 +5,20 @@
         edition = "2024"
         authors = ["anhkhoakz"]
         readme = "README.md"
+        license = "MIT OR Apache-2.0"
+        repository = "https://github.com/anhkhoakz/some-rust-scripts/tree/main/git-send"
+        keywords = ["git", "automation", "workflow"]
+        categories = ["Development Tools"]
 
 [dependencies]
         clap = { version = "4.5.53" }
         dirs = { version = "6.0.0" }
         duct = { version = "1.1.1" }
         colored = { version = "3.0.0" }
-thiserror = "2.0.17"
-log = "0.4.28"
-anyhow = "1.0.100"
-env_logger = "0.11.8"
+        thiserror = "2.0.17"
+        log = "0.4.28"
+        anyhow = "1.0.100"
+        env_logger = "0.11.8"
 
 [dependencies.serde]
         version = "1.0.228"
@@ -32,3 +36,7 @@ env_logger = "0.11.8"
 [profile.dev]
         opt-level = 1
         debug = true
+
+
+[lints.clippy]
+        all = "deny"

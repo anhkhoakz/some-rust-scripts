@@ -1,0 +1,26 @@
+_help:
+    @just --list
+
+_default:
+    @echo "usage: just [command]"
+
+# Build the project with release profile
+build:
+    cargo build --release
+
+# Clean the project
+clean:
+        cargo clean
+
+# Run tests
+test:
+    cargo test
+
+# Run lint checks
+lint:
+    cargo clippy --fix --allow-dirty
+    cargo fmt --check
+
+# Install the binary to the local directory
+install:
+    cargo install --path .
