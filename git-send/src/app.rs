@@ -45,8 +45,16 @@ impl GitSendApp {
             println!("{}", "Changes committed".green());
         }
 
-        // Pull with rebase
+        // Pull with rebase (optionally stashing beforehand)
         let should_pull: bool = !self.config.no_pull;
+        let mut stashed_for_pull = false;
+        if should_pull && self.config.auto_stash {
+            if self.git_ops.has_uncommitted_changes()? {
+                info!("Auto-stash enabled; stashing changes before pull");
+                self.git_ops.stash()?;
+                stashed_for_pull = true;
+            }
+        }
         if !should_pull {
             info!("Skipping pull (no_pull enabled)");
         }
@@ -55,6 +63,11 @@ impl GitSendApp {
                 Ok(_) => println!("{}", "Pulled latest changes".green()),
                 Err(e) => {
                     error!("Pull failed: {}", e);
+                    if stashed_for_pull {
+                        if let Err(pop_err) = self.git_ops.stash_pop() {
+                            warn!("Failed to restore stashed changes: {}", pop_err);
+                        }
+                    }
                     return Err(e);
                 }
             }
@@ -70,8 +83,21 @@ impl GitSendApp {
                 Ok(_) => println!("{}", "Pushed changes".green()),
                 Err(e) => {
                     error!("Push failed: {}", e);
+                    if stashed_for_pull {
+                        if let Err(pop_err) = self.git_ops.stash_pop() {
+                            warn!("Failed to restore stashed changes: {}", pop_err);
+                        }
+                    }
                     return Err(e);
                 }
+            }
+        }
+
+        if stashed_for_pull {
+            if let Err(pop_err) = self.git_ops.stash_pop() {
+                warn!("Failed to restore stashed changes: {}", pop_err);
+            } else {
+                println!("{}", "Restored stashed changes".green());
             }
         }
 

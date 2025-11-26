@@ -90,6 +90,7 @@ impl Config {
     }
 
     /// Save configuration to file
+    #[allow(dead_code)]
     pub fn save(&self, path: &Path) -> Result<()> {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)
@@ -171,6 +172,8 @@ pub fn resolve_config_path(matches: &ArgMatches, app_name: &str) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
     fn test_config_default() {
@@ -206,5 +209,29 @@ mod tests {
         assert!(cfg.dry_run);
         assert!(cfg.no_pull);
         assert!(!cfg.no_push);
+    }
+
+    #[test]
+    fn test_config_save_and_load() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("git_send_cfg_{unique}.toml"));
+
+        let cfg = Config {
+            default_msg: "Saved message".into(),
+            dry_run: true,
+            no_pull: true,
+            auto_stash: true,
+            no_push: false,
+            verbose: true,
+        };
+
+        cfg.save(&path).unwrap();
+        let loaded = Config::load(&path).unwrap();
+        assert_eq!(cfg, loaded);
+
+        let _ = fs::remove_file(&path);
     }
 }
