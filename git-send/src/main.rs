@@ -66,12 +66,6 @@ fn run_git(args: &[&str]) -> Result<(), String> {
 
     let message: Cow<str> = String::from_utf8_lossy(&out.stdout);
     if !message.trim().is_empty() {
-        let message_count: usize = message.lines().count();
-        eprintln!(
-            "{} {}",
-            "Git returned".blue(),
-            format!("{} message(s)", message_count).blue()
-        );
         eprint!("{}", message);
     }
 
