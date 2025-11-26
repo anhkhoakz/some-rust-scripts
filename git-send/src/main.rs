@@ -62,9 +62,7 @@ fn run_git(args: &[&str]) -> Result<(), String> {
         .stderr_to_stdout()
         .stdout_capture()
         .run()
-        .map_err(|e| {
-            e.to_string()
-        })?;
+        .map_err(|e| e.to_string())?;
 
     let message: Cow<str> = String::from_utf8_lossy(&out.stdout);
     if !message.trim().is_empty() {
@@ -139,20 +137,24 @@ fn main() {
         .or(file_cfg.default_msg)
         .unwrap_or_else(|| "I'm too lazy to write a commit message.".to_string());
 
-    let commit_message: String = cli_message
-        .or(positional)
-        .unwrap_or(default_msg);
+    let commit_message: String = cli_message.or(positional).unwrap_or(default_msg);
 
     let dry_run: bool = matches.get_flag("dry_run")
-        || env::var("GIT_SEND_DRY_RUN").map(|v| v == "1").unwrap_or(false)
+        || env::var("GIT_SEND_DRY_RUN")
+            .map(|v| v == "1")
+            .unwrap_or(false)
         || file_cfg.dry_run == Some(1);
 
     let no_pull: bool = matches.get_flag("no_pull")
-        || env::var("GIT_SEND_NO_PULL").map(|v| v == "1").unwrap_or(false)
+        || env::var("GIT_SEND_NO_PULL")
+            .map(|v| v == "1")
+            .unwrap_or(false)
         || file_cfg.no_pull == Some(1);
 
     let no_push: bool = matches.get_flag("no_push")
-        || env::var("GIT_SEND_NO_PUSH").map(|v| v == "1").unwrap_or(false)
+        || env::var("GIT_SEND_NO_PUSH")
+            .map(|v| v == "1")
+            .unwrap_or(false)
         || file_cfg.no_push == Some(1);
 
     let branch: String = cmd("git", &["rev-parse", "--abbrev-ref", "HEAD"])
