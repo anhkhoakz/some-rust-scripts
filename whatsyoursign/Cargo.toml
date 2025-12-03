@@ -1,16 +1,33 @@
 [package]
-name = "whatsyoursign"
-version = "0.1.0"
-edition = "2024"
+        name = "whatsyoursign"
+        version = "0.1.0"
+        edition = "2024"
+        description = "A tool to inspect the signature of a file"
+        license = "AGPL-3.0"
+        repository = "https://github.com/anhkhoakz/some-rust-scripts/tree/main/whatsyoursign"
+        readme = "README.md"
+        keywords = ["macos", "signature", "inspect", "debug"]
+        categories = ["Development", "Utilities"]
 
 [dependencies]
-clap = { version = "4.5.53", features = ["derive"] }
+        clap = { version = "4.5.53", features = ["derive"] }
+        which = "8.0.0"
 
 [profile.release]
-panic = "abort"
-codegen-units = 1
-lto = "fat"
-incremental = false
-opt-level = "z"
-strip = true
-debug = false
+        panic = "abort"
+        codegen-units = 1
+        lto = true
+        incremental = false
+        opt-level = 3
+        strip = true
+        debug = false
+
+[lints.clippy]
+        all = "warn"
+        pedantic = "warn"
+        style = "warn"
+        nursery = "warn"
+        cargo = "warn"
+        module_name_repetitions = { level = "allow", priority = 1 }
+        struct_excessive_bools = { level = "allow", priority = 1 }
+        unnecessary_debug_formatting = { level = "allow", priority = 1 }
