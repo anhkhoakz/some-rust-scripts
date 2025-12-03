@@ -1,0 +1,54 @@
+[package]
+    name = "aspect-ratio-cli"
+    version = "0.2.0"
+    edition = "2021"
+    authors = ["anhkhoakz"]
+    description = "A simple Rust library to calculate aspect ratio"
+    license = "GPL-2.0"
+    readme = "README.md"
+    homepage = "https://github.com/anhkhoakz/some-rust-scripts/tree/main/aspect-ratio"
+    repository = "https://github.com/anhkhoakz/some-rust-scripts/tree/main/aspect-ratio"
+    documentation = "https://docs.rs/aspect-ratio-cli"
+    keywords = ["aspect-ratio", "rust", "cli"]
+    categories = ["command-line-utilities"]
+    rust-version = "1.86.0"
+    exclude = [
+        "target",
+        "Cargo.lock",
+        "README.md",
+        ".gitignore",
+        ".vscode",
+        ".idea",
+        "examples",
+        "tests",
+        ".DS_Store",
+        "*.swp",
+        "*.bak",
+        "*.tmp",
+        "*.log",
+        ".env",
+        ".cargo_vcs_info.json",
+        "doc/",
+        "**/.DS_Store",
+        "**/.env",
+        "**/.vscode",
+        "**/.idea",
+        "**/Thumbs.db",
+        "**/*~",
+        "**/#*#",
+        "**/.#*",
+    ]
+
+[dependencies.clap]
+    version = "4.5.37"
+    features = ["derive"]
+
+[dependencies.clap_complete]
+    version = "4.5.48"
+
+[profile.release]
+    opt-level = "z"
+    lto = true
+    codegen-units = 1
+    panic = "abort"
+    strip = true

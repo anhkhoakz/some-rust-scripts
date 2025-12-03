@@ -1,0 +1,32 @@
+Inspecting signature of /opt/homebrew/bin/tldr
+codesign stdout:
+
+codesign stderr:
+Executable=/opt/homebrew/Cellar/tlrc/1.12.0/bin/tldr
+Identifier=tldr-0de404edbb5f668f
+Format=Mach-O thin (arm64)
+CodeDirectory v=20400 size=18808 flags=0x20002(adhoc,linker-signed) hashes=584+0 location=embedded
+VersionPlatform=1
+VersionMin=720896
+VersionSDK=984064
+Hash type=sha256 size=32
+CandidateCDHash sha256=7d43a69361cfa479a978e326dbce5a9442e51a6a
+CandidateCDHashFull sha256=7d43a69361cfa479a978e326dbce5a9442e51a6a5fd003340162d4574354d99d
+Hash choices=sha256
+CMSDigest=7d43a69361cfa479a978e326dbce5a9442e51a6a5fd003340162d4574354d99d
+CMSDigestType=2
+Executable Segment base=0
+Executable Segment limit=2260992
+Executable Segment flags=0x1
+Page size=4096
+CDHash=7d43a69361cfa479a978e326dbce5a9442e51a6a
+Signature=adhoc
+Info.plist=not bound
+TeamIdentifier=not set
+Sealed Resources=none
+Internal requirements=none
+
+spctl stdout:
+
+spctl stderr:
+/opt/homebrew/bin/tldr: rejected

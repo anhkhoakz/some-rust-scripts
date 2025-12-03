@@ -1,0 +1,11 @@
+[package]
+name = "clop-clone"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+arboard = "3.6.1"
+clap = { version = "4.5.53", features = ["derive"] }
+image = "0.25.9"
+imagequant = "4.4.1"
+rgb = "0.8.52"

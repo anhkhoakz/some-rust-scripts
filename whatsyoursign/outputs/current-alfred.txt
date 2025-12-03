@@ -1,0 +1,39 @@
+Inspecting signature of /Applications/Alfred 5.app
+codesign stdout:
+
+codesign stderr:
+Executable=/Applications/Alfred 5.app/Contents/MacOS/Alfred
+Identifier=com.runningwithcrayons.Alfred
+Format=app bundle with Mach-O universal (x86_64 arm64)
+CodeDirectory v=20500 size=1801 flags=0x10000(runtime) hashes=45+7 location=embedded
+VersionPlatform=1
+VersionMin=720896
+VersionSDK=983552
+Hash type=sha256 size=32
+CandidateCDHash sha256=1206b74297178c27b646cf05db724e390b5e6f7d
+CandidateCDHashFull sha256=1206b74297178c27b646cf05db724e390b5e6f7d723fac179f5353381b9467e8
+Hash choices=sha256
+CMSDigest=1206b74297178c27b646cf05db724e390b5e6f7d723fac179f5353381b9467e8
+CMSDigestType=2
+Executable Segment base=0
+Executable Segment limit=114688
+Executable Segment flags=0x1
+Page size=4096
+CDHash=1206b74297178c27b646cf05db724e390b5e6f7d
+Signature size=8997
+Authority=Developer ID Application: Running with Crayons Ltd (XZZXE9SED4)
+Authority=Developer ID Certification Authority
+Authority=Apple Root CA
+Timestamp=6 Oct 2025 at 20:54:24
+Notarization Ticket=stapled
+Info.plist entries=39
+TeamIdentifier=XZZXE9SED4
+Runtime Version=15.2.0
+Sealed Resources version=2 rules=13 files=49
+Internal requirements count=1 size=224
+
+spctl stdout:
+
+spctl stderr:
+/Applications/Alfred 5.app: accepted
+source=Notarized Developer ID

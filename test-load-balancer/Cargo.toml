@@ -1,0 +1,8 @@
+[package]
+name = "test-load-balancer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+pingora-core = "0.6.0"
+pingora-load-balancing = "0.6.0"

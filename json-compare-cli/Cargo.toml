@@ -1,0 +1,35 @@
+[package]
+    name = "json-compare-cli"
+    version = "0.1.4"
+    edition = "2024"
+    authors = ["anhkhoakz"]
+    description = "A command-line tool to compare JSON files and print the differences in a human-readable format."
+    license = "GPL-2.0"
+    readme = "README.md"
+    homepage = "https://github.com/anhkhoakz/some-rust-scripts/tree/main/json-compare-cli"
+    repository = "https://github.com/anhkhoakz/some-rust-scripts/tree/main/json-compare-cli"
+    keywords = ["json-compare", "rust", "cli"]
+    categories = ["command-line-utilities"]
+    exclude = [
+        "test/*",
+        "target/*",
+        ".gitignore",
+        "justfile",
+        "README.md",
+        "LICENSE",
+        "*.md",
+        "*.toml",
+        "*.lock",
+    ]
+
+[dependencies]
+    clap = { version = "4.5.37", features = ["derive"] }
+    serde_json = "1.0.140"
+    similar = "2.7.0"
+
+[profile.release]
+    opt-level = "z"
+    lto = true
+    codegen-units = 1
+    panic = "abort"
+    strip = true

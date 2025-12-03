@@ -1,0 +1,16 @@
+[package]
+name = "whatsyoursign"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4.5.53", features = ["derive"] }
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = "fat"
+incremental = false
+opt-level = "z"
+strip = true
+debug = false
