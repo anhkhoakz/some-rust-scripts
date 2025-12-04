@@ -604,16 +604,16 @@ fn format_entitlements_simple(plist: &str) -> String {
 
     let mut entries = Vec::new();
 
-    // Process the entire plist string, not just line by line
-    // This handles cases where codesign outputs everything on one line
+    // Process the entire plist string, not just line by line.
+    // This handles cases where `codesign` outputs everything on one line.
     let plist_content = plist.trim();
 
-    // Find all key-value pairs by searching sequentially
-    // In plist format, keys and values appear in pairs: <key>...</key><value>...</value>
+    // Find all key-value pairs by searching sequentially.
+    // In plist format, keys and values appear in pairs: `<key>...</key><value>...</value>`.
     let mut pos = 0;
 
     while pos < plist_content.len() {
-        // Look for <key> tags
+        // Look for `<key>` tags.
         let Some(key_start) = plist_content[pos..].find("<key>") else {
             break;
         };
@@ -784,23 +784,23 @@ fn inspect_signature(
         info.resolved_path = Some(actual_path.clone());
     }
 
-    // Check signature validity using codesign -vv
+    // Check signature validity using `codesign -vv`.
     let (is_valid, source) = check_signature_validity(check_path).inspect_err(|e| {
         print_command_error("codesign", e, check_path, color, debug);
     })?;
     info.is_valid = is_valid;
 
-    // Check for notarization - if checking an executable, also check the app bundle
+    // Check for notarization - if checking an executable, also check the app bundle.
     if source.contains("Notarized") {
         info.is_notarized = true;
     }
 
-    // Check codesign output for notarization ticket (this is the most reliable)
+    // Check `codesign` output for notarization ticket (this is the most reliable).
     if codesign_stderr.contains("Notarization Ticket=") {
         info.is_notarized = codesign_stderr.contains("stapled");
     }
 
-    // If checking an executable inside an app bundle, check the app bundle's codesign output
+    // If checking an executable inside an app bundle, check the app bundle's `codesign` output.
     if let Some(ref app_bundle_path) = find_app_bundle(check_path) {
         let app_codesign_out = Command::new("codesign")
             .args(["-dvvv", app_bundle_path])
@@ -852,15 +852,15 @@ fn inspect_signature(
         return Ok(());
     }
 
-        output_with_pager(&output).map_err(|e| {
-            if debug {
-                eprintln!("Debug: Pager error: {e}");
-            }
-            // Fallback to direct output.
-            print!("{output}");
-            io::stdout().flush().unwrap_or(());
-            Box::new(e) as Box<dyn std::error::Error>
-        })?;
+    output_with_pager(&output).map_err(|e| {
+        if debug {
+            eprintln!("Debug: Pager error: {e}");
+        }
+        // Fallback to direct output.
+        print!("{output}");
+        io::stdout().flush().unwrap_or(());
+        Box::new(e) as Box<dyn std::error::Error>
+    })?;
 
     Ok(())
 }
@@ -962,7 +962,7 @@ fn print_path_error(path: &str, color: ColorConfig) {
     eprintln!("  {path}");
     eprintln!();
 
-    // Check if it's a permission issue
+    // Check if it's a permission issue.
     let path_obj = Path::new(path);
     let Some(parent) = path_obj.parent() else {
         print_suggestion("Make sure the path is correct and the file exists.", color);
@@ -1061,7 +1061,7 @@ fn print_command_error(
     eprintln!("  {path}");
     eprintln!();
 
-    // Try to provide helpful context based on error kind
+    // Try to provide helpful context based on error kind.
     let error_msg = match error.kind() {
         io::ErrorKind::NotFound => {
             format!("The '{command}' command was not found.")
@@ -1079,7 +1079,7 @@ fn print_command_error(
     print_error_message(&error_msg, color);
     eprintln!();
 
-    // Check if it's an unsigned file
+    // Check if it's an unsigned file.
     if command == "codesign" {
         print_suggestion(
             "The file might not be a signed macOS application or executable.",
@@ -1140,7 +1140,7 @@ fn print_unexpected_error(
     }
     eprintln!();
 
-    // Bug report information
+    // Bug report information.
     eprintln!("This looks like a bug. Please report it:");
     eprintln!("  https://github.com/anhkhoakz/some-rust-scripts/issues/new");
     eprintln!();
@@ -1192,7 +1192,7 @@ fn main() -> ExitCode {
 
     let args = Args::parse();
 
-    // Determine color configuration
+    // Determine color configuration.
     let mut color = ColorConfig::new();
     if args.no_color {
         color.enabled = false;
@@ -1210,10 +1210,10 @@ fn main() -> ExitCode {
     }
 
     if let Err(e) = inspect_signature(&args.path, args.format, color, args.quiet, args.debug) {
-        // Error messages are already printed by inspect_signature for most cases
-        // For truly unexpected errors, print additional debug info
+        // Error messages are already printed by `inspect_signature` for most cases.
+        // For truly unexpected errors, print additional debug info.
         let error_str = e.to_string();
-        // Only print unexpected error if it's not one we've already handled
+        // Only print unexpected error if it's not one we've already handled.
         if !error_str.contains("codesign failed") && args.debug {
             print_unexpected_error(e.as_ref(), "while inspecting signature", color, args.debug);
         }
